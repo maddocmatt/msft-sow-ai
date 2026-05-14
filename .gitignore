@@ -60,6 +60,9 @@ templates/**/*.pptm
 templates/**/*.pdf
 templates/**/*.mpp
 
+# Extracted guidance contains template body text (may include MS-internal prose)
+templates/*/guidance.json
+
 corpus/**/*
 !corpus/**/README.md
 !corpus/**/.gitkeep

@@ -1,0 +1,37 @@
+# Registry of US Federal SOW templates.
+# Engagement types drive which template the architect picks when starting a SOW.
+#
+# Per the official template guide:
+#   Italic Pink  -> instruction       (must be deleted before sending)
+#   Bold Green   -> optional_language (keep / edit / remove and un-bold)
+#   Red          -> placeholder       (must be filled in)
+color_roles:
+  instruction: ["950095", "FF00FF"]
+  optional_language: ["00B050"]
+  placeholder: ["EE0000", "ED0000"]
+
+templates:
+  - id: msd-v13
+    display_name: "MSD (Microsoft Services Delivery) — Fixed Fee"
+    engagement_type: msd
+    file: "US Federal MSD SOW v13.0 (Mar2026).docx"
+  - id: osl-v13
+    display_name: "OSL (Online Services Licensing) — Fixed Fee"
+    engagement_type: osl
+    file: "US Federal OSL SOW v13.0 (Mar2026).docx"
+  - id: agile-capacity-v4
+    display_name: "Agile Capacity / Sprint Delivery"
+    engagement_type: agile
+    file: "US Federal Agile Capacity SOW v4.0 (Mar2026) (1).docx"
+  - id: staff-aug-tm-v12
+    display_name: "Staff Augmentation — T&M"
+    engagement_type: staff_aug
+    file: "US Federal Staff Aug T&M SOW v12.0 (Mar2026).docx"
+  - id: subcontractor-v1
+    display_name: "Sub-Contractor SOW"
+    engagement_type: subcontractor
+    file: "US Federal Sub-Contractor SOW Templated v1.0 (April2026).docx"
+  - id: tm-sprint-zero-v1
+    display_name: "T&M Sprint Zero"
+    engagement_type: sprint_zero
+    file: "US Federal T&M Sprint Zero SOW v1.0 (Feb2026).docx"
