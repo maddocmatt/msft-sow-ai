@@ -43,7 +43,9 @@ class OpportunityBrief(BaseModel):
     industry: str | None = None
     archetype: str | None = Field(
         default=None,
-        description="e.g. 'AI agent enablement', 'Azure landing zone', 'Data platform modernization'",
+        description=(
+            "e.g. 'AI agent enablement', 'Azure landing zone', 'Data platform modernization'"
+        ),
     )
     summary: str
     desiredOutcomes: list[str] = Field(default_factory=list)
@@ -144,8 +146,7 @@ class SowDocument(BaseModel):
         actual = [s.name for s in sections]
         if actual != SOW_SECTION_ORDER:
             raise ValueError(
-                "SOW sections must exactly match canonical order: "
-                + ", ".join(SOW_SECTION_ORDER)
+                "SOW sections must exactly match canonical order: " + ", ".join(SOW_SECTION_ORDER)
             )
         return sections
 
@@ -230,7 +231,7 @@ class SqaReport(BaseModel):
 
     @field_validator("passed")
     @classmethod
-    def passed_implies_no_blockers(cls, passed: bool, info) -> bool:  # noqa: ANN001
+    def passed_implies_no_blockers(cls, passed: bool, info) -> bool:
         findings: list[SqaFinding] = info.data.get("findings", []) or []
         if passed and any(f.severity == "blocker" for f in findings):
             raise ValueError("Cannot mark passed=True while blocker findings exist.")

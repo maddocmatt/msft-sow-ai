@@ -36,8 +36,17 @@ NS = {"w": W}
 
 # Sections we care about, matched case-insensitively against heading text.
 SCOPE_HEADINGS = (
-    "scope", "areas in scope", "objectives", "delivery approach", "approach",
-    "general project scope", "envision phase", "plan", "build", "stabilize", "deploy",
+    "scope",
+    "areas in scope",
+    "objectives",
+    "delivery approach",
+    "approach",
+    "general project scope",
+    "envision phase",
+    "plan",
+    "build",
+    "stabilize",
+    "deploy",
 )
 ASSUMPTION_HEADINGS = ("assumption", "project assumption")
 DELIVERABLE_HEADINGS = ("deliverable",)
@@ -45,17 +54,53 @@ RESPONSIBILITY_HEADINGS = ("responsibilit", "microsoft", "customer name")
 
 # Strong action verbs that are good in scope/approach prose.
 ACTION_VERBS = {
-    "design", "build", "implement", "deploy", "develop", "deliver", "configure",
-    "integrate", "migrate", "assess", "document", "review", "validate", "test",
-    "establish", "produce", "perform", "create", "enable", "operationalize",
-    "instrument", "stand up", "transition", "knowledge transfer",
+    "design",
+    "build",
+    "implement",
+    "deploy",
+    "develop",
+    "deliver",
+    "configure",
+    "integrate",
+    "migrate",
+    "assess",
+    "document",
+    "review",
+    "validate",
+    "test",
+    "establish",
+    "produce",
+    "perform",
+    "create",
+    "enable",
+    "operationalize",
+    "instrument",
+    "stand up",
+    "transition",
+    "knowledge transfer",
 }
 
 # Hedges/weasel words. If they exist in templates we note them; drafters MUST NOT add new ones.
 HEDGES = {
-    "may", "might", "could", "should", "approximately", "roughly", "around",
-    "as needed", "best effort", "best-effort", "tbd", "to be determined",
-    "etc.", "and so on", "various", "some", "potentially", "likely", "ideally",
+    "may",
+    "might",
+    "could",
+    "should",
+    "approximately",
+    "roughly",
+    "around",
+    "as needed",
+    "best effort",
+    "best-effort",
+    "tbd",
+    "to be determined",
+    "etc.",
+    "and so on",
+    "various",
+    "some",
+    "potentially",
+    "likely",
+    "ideally",
 }
 
 PLACEHOLDER_RE = re.compile(r"<[^>]{1,60}>|\[[^\]]{1,60}\]|\{\{[^}]{1,60}\}\}")

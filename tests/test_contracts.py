@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
-
 from src.shared.contracts import (
     SOW_SECTION_ORDER,
-    BudgetaryEstimate,
     BeLineItem,
+    BudgetaryEstimate,
     SowDocument,
     SowSection,
 )

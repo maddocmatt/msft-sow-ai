@@ -16,8 +16,8 @@ from typing import Any
 import yaml
 
 from src.shared.contracts import (
-    BudgetaryEstimate,
     SOW_SECTION_ORDER,
+    BudgetaryEstimate,
     SowDocument,
     SqaFinding,
     SqaReport,
@@ -51,7 +51,9 @@ def _check_sow_section_order(sow: SowDocument) -> bool:
 
 
 def _check_assumption_owner_present(plan_assumptions: Iterable[Any]) -> bool:
-    return all(getattr(a, "owner", None) in {"customer", "vendor", "joint"} for a in plan_assumptions)
+    return all(
+        getattr(a, "owner", None) in {"customer", "vendor", "joint"} for a in plan_assumptions
+    )
 
 
 def _check_be_lineitems_link_wbs(be: BudgetaryEstimate, wbs: WbsDocument) -> list[str]:

@@ -30,7 +30,9 @@ def _clean_sow() -> SowDocument:
 
 
 def _wbs_with(task_id: str = "t1") -> WbsDocument:
-    return WbsDocument(oppId="opp-1", tasks=[WbsTask(id=task_id, phaseId="p1", name="Task", durationDays=5)])
+    return WbsDocument(
+        oppId="opp-1", tasks=[WbsTask(id=task_id, phaseId="p1", name="Task", durationDays=5)]
+    )
 
 
 def test_clean_bundle_passes() -> None:
@@ -39,7 +41,9 @@ def test_clean_bundle_passes() -> None:
     wbs = _wbs_with("t1")
     be = BudgetaryEstimate(
         oppId="opp-1",
-        lineItems=[BeLineItem(role="Architect", rateUsd=300.0, hours=10, phaseId="p1", wbsTaskId="t1")],
+        lineItems=[
+            BeLineItem(role="Architect", rateUsd=300.0, hours=10, phaseId="p1", wbsTaskId="t1")
+        ],
     )
     report = run_deterministic(
         rubric=rubric,
@@ -74,7 +78,11 @@ def test_dangling_be_wbs_link_blocks() -> None:
     wbs = _wbs_with("t1")
     be = BudgetaryEstimate(
         oppId="opp-1",
-        lineItems=[BeLineItem(role="Engineer", rateUsd=200.0, hours=10, phaseId="p1", wbsTaskId="does-not-exist")],
+        lineItems=[
+            BeLineItem(
+                role="Engineer", rateUsd=200.0, hours=10, phaseId="p1", wbsTaskId="does-not-exist"
+            )
+        ],
     )
     report = run_deterministic(
         rubric=rubric,

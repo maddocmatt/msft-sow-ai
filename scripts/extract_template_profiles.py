@@ -102,9 +102,12 @@ def profile_docx(path: Path) -> DocxProfile:
             text = "".join(t.text or "" for t in p.iter(f"{{{NS['w']}}}t")).strip()
             if style:
                 styles_seen.add(style)
-            if style and (style.lower().startswith("heading") or style.lower() in {"title", "subtitle"}):
-                if text:
-                    prof.headings.append(Heading(style=style, text=text))
+            if (
+                style
+                and (style.lower().startswith("heading") or style.lower() in {"title", "subtitle"})
+                and text
+            ):
+                prof.headings.append(Heading(style=style, text=text))
             for token in ("[insert", "TBD", "TODO", "<<", "{{"):
                 if token.lower() in text.lower():
                     placeholder_tokens.append(text[:160])
@@ -142,7 +145,9 @@ def profile_xlsx(path: Path) -> XlsxProfile:
 def profile_pptx(path: Path) -> PptxProfile:
     prof = PptxProfile()
     with zipfile.ZipFile(path) as zf:
-        slide_names = sorted(n for n in zf.namelist() if n.startswith("ppt/slides/slide") and n.endswith(".xml"))
+        slide_names = sorted(
+            n for n in zf.namelist() if n.startswith("ppt/slides/slide") and n.endswith(".xml")
+        )
         for idx, slide_name in enumerate(slide_names, start=1):
             xml = _read_zip_xml(zf, slide_name)
             if xml is None:
@@ -152,8 +157,10 @@ def profile_pptx(path: Path) -> PptxProfile:
             for sp in xml.iter(f"{{{NS['p']}}}sp"):
                 ph = sp.find(f".//{{{NS['p']}}}ph")
                 placeholder_type = ph.attrib.get("type") if ph is not None else None
-                paragraphs = ["".join(t.text or "" for t in para.iter(f"{{{NS['a']}}}t")).strip()
-                              for para in sp.iter(f"{{{NS['a']}}}p")]
+                paragraphs = [
+                    "".join(t.text or "" for t in para.iter(f"{{{NS['a']}}}t")).strip()
+                    for para in sp.iter(f"{{{NS['a']}}}p")
+                ]
                 joined = " | ".join(p for p in paragraphs if p).strip()
                 if not joined:
                     continue
@@ -161,7 +168,9 @@ def profile_pptx(path: Path) -> PptxProfile:
                     title = joined
                 else:
                     texts.append(joined)
-            prof.slides.append(PptxSlide(index=idx, title=title, layout=None, placeholders=texts[:6]))
+            prof.slides.append(
+                PptxSlide(index=idx, title=title, layout=None, placeholders=texts[:6])
+            )
     return prof
 
 
@@ -199,8 +208,20 @@ def main() -> int:
         rel = path.relative_to(TEMPLATES_DIR)
         out_name = rel.as_posix().replace("/", "__") + ".json"
         out_path = OUT_DIR / out_name
-        out_path.write_text(json.dumps(asdict(prof) if hasattr(prof, "__dataclass_fields__") else prof, indent=2, default=str))
-        summary.append({"template": rel.as_posix(), "profile": out_path.relative_to(ROOT).as_posix(), "kind": getattr(prof, "kind", "?")})
+        out_path.write_text(
+            json.dumps(
+                asdict(prof) if hasattr(prof, "__dataclass_fields__") else prof,
+                indent=2,
+                default=str,
+            )
+        )
+        summary.append(
+            {
+                "template": rel.as_posix(),
+                "profile": out_path.relative_to(ROOT).as_posix(),
+                "kind": getattr(prof, "kind", "?"),
+            }
+        )
         print(f"OK   {rel.as_posix()}  ->  {out_path.relative_to(ROOT).as_posix()}")
 
     (OUT_DIR / "_index.json").write_text(json.dumps(summary, indent=2))
