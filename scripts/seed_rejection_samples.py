@@ -1,14 +1,18 @@
 """Seed the `idx-rejection-samples` index used by the analogy critic.
 
-Creates the index if missing, then uploads a small corpus of historical SOW
-rejection patterns. Run once to bootstrap; safe to re-run (uses upload/merge).
+(Re)creates the index with a vector `embedding` field (HNSW), embeds each
+sample with the configured Azure OpenAI embedding deployment, and uploads.
 
 Env:
-  SOWAI_SEARCH  AI Search service short name (e.g. srch-sowai-dev-...)
+  SOWAI_SEARCH             AI Search service short name
+  SOWAI_FOUNDRY_ENDPOINT   Azure OpenAI / Foundry endpoint
+  SOWAI_EMBED_DEPLOYMENT   Embedding deployment (e.g. text-embedding-3-small)
+  SOWAI_LLM_MODE           Set to "azure" to enable real embeddings
 
 Auth: DefaultAzureCredential. Caller must have:
   - Search Service Contributor (to create index)
   - Search Index Data Contributor (to upload docs)
+  - Cognitive Services OpenAI User (to call embeddings)
 """
 
 from __future__ import annotations
@@ -20,14 +24,20 @@ from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
+    HnswAlgorithmConfiguration,
     SearchableField,
     SearchField,
     SearchFieldDataType,
     SearchIndex,
     SimpleField,
+    VectorSearch,
+    VectorSearchProfile,
 )
 
+from sqa.llm import embedder_from_env
+
 INDEX_NAME = "idx-rejection-samples"
+EMBED_DIM = 1536  # text-embedding-3-small
 
 SAMPLES: list[dict[str, str]] = [
     {
@@ -104,12 +114,7 @@ def _service_endpoint() -> str:
     return f"https://{name}.search.windows.net"
 
 
-def _ensure_index(endpoint: str, cred: DefaultAzureCredential) -> None:
-    client = SearchIndexClient(endpoint=endpoint, credential=cred)
-    existing = {i.name for i in client.list_indexes()}
-    if INDEX_NAME in existing:
-        print(f"index '{INDEX_NAME}' already exists")
-        return
+def _build_index() -> SearchIndex:
     fields: list[SearchField] = [
         SimpleField(name="id", type=SearchFieldDataType.String, key=True, filterable=True),
         SimpleField(
@@ -119,22 +124,47 @@ def _ensure_index(endpoint: str, cred: DefaultAzureCredential) -> None:
             name="section", type=SearchFieldDataType.String, filterable=True, facetable=True
         ),
         SearchableField(name="text", type=SearchFieldDataType.String, analyzer_name="en.microsoft"),
+        SearchField(
+            name="embedding",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+            searchable=True,
+            vector_search_dimensions=EMBED_DIM,
+            vector_search_profile_name="hnsw-default",
+        ),
     ]
-    client.create_index(SearchIndex(name=INDEX_NAME, fields=fields))
-    print(f"created index '{INDEX_NAME}'")
+    vector_search = VectorSearch(
+        algorithms=[HnswAlgorithmConfiguration(name="hnsw-cfg")],
+        profiles=[
+            VectorSearchProfile(name="hnsw-default", algorithm_configuration_name="hnsw-cfg")
+        ],
+    )
+    return SearchIndex(name=INDEX_NAME, fields=fields, vector_search=vector_search)
+
+
+def _recreate_index(endpoint: str, cred: DefaultAzureCredential) -> None:
+    client = SearchIndexClient(endpoint=endpoint, credential=cred)
+    existing = {i.name for i in client.list_indexes()}
+    if INDEX_NAME in existing:
+        client.delete_index(INDEX_NAME)
+        print(f"deleted existing index '{INDEX_NAME}'")
+    client.create_index(_build_index())
+    print(f"created index '{INDEX_NAME}' with vector field (dim={EMBED_DIM})")
 
 
 def _upload(endpoint: str, cred: DefaultAzureCredential) -> None:
+    embedder = embedder_from_env()
+    vectors = embedder.embed([s["text"] for s in SAMPLES])
+    docs = [{**s, "embedding": v} for s, v in zip(SAMPLES, vectors, strict=True)]
     client = SearchClient(endpoint=endpoint, index_name=INDEX_NAME, credential=cred)
-    result = client.upload_documents(documents=SAMPLES)
+    result = client.upload_documents(documents=docs)
     succeeded = sum(1 for r in result if r.succeeded)
-    print(f"uploaded {succeeded}/{len(SAMPLES)} samples")
+    print(f"uploaded {succeeded}/{len(docs)} samples (embedder={type(embedder).__name__})")
 
 
 def main() -> None:
     endpoint = _service_endpoint()
     cred = DefaultAzureCredential()
-    _ensure_index(endpoint, cred)
+    _recreate_index(endpoint, cred)
     _upload(endpoint, cred)
 
 

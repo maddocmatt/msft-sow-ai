@@ -13,7 +13,7 @@ from typing import Any, Protocol
 
 from shared.contracts import SowDocument, SqaFinding
 
-from .llm import LlmClient
+from .llm import Embedder, LlmClient, StubEmbedder, embedder_from_env
 
 _ANALOGY_SYSTEM = (
     "You compare a candidate Microsoft Federal SOW excerpt to historical "
@@ -39,15 +39,22 @@ class StubRetriever:
 
 
 class AzureSearchRetriever:
-    """Lightweight Azure AI Search vector/semantic retriever.
+    """Azure AI Search vector retriever (uses an embedder for the query).
 
-    Currently issues a simple `search` query (no embedding); upgrade to vector
-    once the rejection-samples index is populated and an embedding model is
-    deployed. Uses DefaultAzureCredential.
+    Falls back to keyword search if no embedder is provided. Uses
+    DefaultAzureCredential.
     """
 
-    def __init__(self, *, service_name: str) -> None:
+    def __init__(
+        self,
+        *,
+        service_name: str,
+        embedder: Embedder | None = None,
+        vector_field: str = "embedding",
+    ) -> None:
         self.service_name = service_name
+        self.embedder = embedder
+        self.vector_field = vector_field
 
     def topk(self, *, index: str, query: str, k: int) -> list[dict[str, Any]]:
         from azure.identity import DefaultAzureCredential
@@ -58,7 +65,14 @@ class AzureSearchRetriever:
             index_name=index,
             credential=DefaultAzureCredential(),
         )
-        results = client.search(search_text=query, top=k)
+        if self.embedder is not None and not isinstance(self.embedder, StubEmbedder):
+            from azure.search.documents.models import VectorizedQuery
+
+            vec = self.embedder.embed([query])[0]
+            vq = VectorizedQuery(vector=vec, k_nearest_neighbors=k, fields=self.vector_field)
+            results = client.search(search_text=None, vector_queries=[vq], top=k)
+        else:
+            results = client.search(search_text=query, top=k)
         return [dict(r) for r in results]
 
 
@@ -66,7 +80,7 @@ def retriever_from_env() -> Retriever:
     name = os.environ.get("SOWAI_SEARCH")
     if not name:
         return StubRetriever()
-    return AzureSearchRetriever(service_name=name)
+    return AzureSearchRetriever(service_name=name, embedder=embedder_from_env())
 
 
 def run_analogy_critic(

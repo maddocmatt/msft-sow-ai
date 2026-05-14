@@ -97,3 +97,69 @@ def from_env() -> LlmClient:
     if not endpoint or not deployment:
         return StubLlm()
     return AzureOpenAIChat(endpoint=endpoint, deployment=deployment)
+
+
+# ---------------------------------------------------------------------------
+# Embeddings
+# ---------------------------------------------------------------------------
+
+
+class Embedder(Protocol):
+    def embed(self, texts: list[str]) -> list[list[float]]: ...
+
+
+class StubEmbedder:
+    """Deterministic dummy embedder; returns zero vectors of fixed dim."""
+
+    def __init__(self, dim: int = 1536) -> None:
+        self.dim = dim
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        return [[0.0] * self.dim for _ in texts]
+
+
+class AzureOpenAIEmbed:
+    """Azure OpenAI embeddings via DefaultAzureCredential."""
+
+    def __init__(
+        self,
+        *,
+        endpoint: str,
+        deployment: str,
+        api_version: str = "2024-10-21",
+        timeout_s: float = 30.0,
+    ) -> None:
+        self.endpoint = endpoint.rstrip("/")
+        self.deployment = deployment
+        self.api_version = api_version
+        self.timeout_s = timeout_s
+
+    def _token(self) -> str:
+        from azure.identity import DefaultAzureCredential
+
+        cred = DefaultAzureCredential()
+        return cred.get_token("https://cognitiveservices.azure.com/.default").token
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        import httpx
+
+        url = (
+            f"{self.endpoint}/openai/deployments/{self.deployment}"
+            f"/embeddings?api-version={self.api_version}"
+        )
+        headers = {"Authorization": f"Bearer {self._token()}"}
+        with httpx.Client(timeout=self.timeout_s) as c:
+            r = c.post(url, json={"input": texts}, headers=headers)
+            r.raise_for_status()
+            data = r.json()["data"]
+        return [list(item["embedding"]) for item in data]
+
+
+def embedder_from_env() -> Embedder:
+    """SOWAI_EMBED_DEPLOYMENT (+ SOWAI_FOUNDRY_ENDPOINT, SOWAI_LLM_MODE=azure)."""
+    mode = os.environ.get("SOWAI_LLM_MODE", "stub").lower()
+    endpoint = os.environ.get("SOWAI_FOUNDRY_ENDPOINT")
+    deployment = os.environ.get("SOWAI_EMBED_DEPLOYMENT")
+    if mode != "azure" or not endpoint or not deployment:
+        return StubEmbedder()
+    return AzureOpenAIEmbed(endpoint=endpoint, deployment=deployment)
