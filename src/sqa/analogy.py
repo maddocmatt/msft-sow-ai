@@ -107,9 +107,7 @@ def run_analogy_critic(
         + "\n\nHistorical rejections (top "
         + str(len(neighbours))
         + "):\n"
-        + "\n---\n".join(
-            (n.get("text") or n.get("content") or str(n))[:600] for n in neighbours
-        )
+        + "\n---\n".join((n.get("text") or n.get("content") or str(n))[:600] for n in neighbours)
     )
     raw = llm.complete_json(system=_ANALOGY_SYSTEM, user=user, schema_hint=_ANALOGY_SCHEMA)
     items = raw.get("items") or []
