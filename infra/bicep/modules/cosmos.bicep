@@ -29,10 +29,13 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
 }
 
 var containers = [
-  { id: 'opportunities', pk: '/oppId' }
-  { id: 'runs', pk: '/oppId' }
-  { id: 'sqa_findings', pk: '/oppId' }
+  { id: 'users', pk: '/oid' }
+  { id: 'opportunities', pk: '/userId' }
+  { id: 'runs', pk: '/userId' }
+  { id: 'drafts', pk: '/userId' }
+  { id: 'sqa_findings', pk: '/userId' }
   { id: 'rubric_versions', pk: '/version' }
+  { id: 'audit_log', pk: '/yyyymm' }
 ]
 
 resource cont 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = [for c in containers: {

@@ -41,7 +41,9 @@ jobs:
         run: bandit -c pyproject.toml -r src
 
       - name: pip-audit
-        run: pip-audit --strict --skip-editable
+        run: |
+          pip freeze --exclude-editable > .audit-reqs.txt
+          pip-audit --strict -r .audit-reqs.txt
         continue-on-error: false
 
       - name: Pytest
