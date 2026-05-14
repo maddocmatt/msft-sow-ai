@@ -15,7 +15,7 @@ from typing import Any
 
 import yaml
 
-from src.shared.contracts import (
+from shared.contracts import (
     SOW_SECTION_ORDER,
     BudgetaryEstimate,
     SowDocument,
@@ -47,7 +47,8 @@ def load_rubric(path: Path) -> dict[str, Any]:
 
 
 def _check_sow_section_order(sow: SowDocument) -> bool:
-    return [s.name for s in sow.sections] == SOW_SECTION_ORDER
+    actual: list[str] = [s.name for s in sow.sections]
+    return actual == list(SOW_SECTION_ORDER)
 
 
 def _check_assumption_owner_present(plan_assumptions: Iterable[Any]) -> bool:

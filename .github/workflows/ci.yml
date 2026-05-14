@@ -34,7 +34,8 @@ jobs:
         run: ruff format --check .
 
       - name: Mypy
-        run: mypy src
+        run: mypy shared sqa orchestrator agents
+        working-directory: src
 
       - name: Bandit
         run: bandit -c pyproject.toml -r src

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.shared.contracts import (
+from shared.contracts import (
     SOW_SECTION_ORDER,
     BeLineItem,
     BudgetaryEstimate,
@@ -13,7 +13,7 @@ from src.shared.contracts import (
     WbsDocument,
     WbsTask,
 )
-from src.sqa.gatekeeper import load_rubric, run_deterministic
+from sqa.gatekeeper import load_rubric, run_deterministic
 
 RUBRIC_PATH = Path(__file__).resolve().parents[1] / "sqa" / "rubrics" / "v0.yaml"
 

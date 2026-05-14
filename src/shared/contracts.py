@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 # ---------------------------------------------------------------------------
 # Shared primitives
@@ -231,7 +232,7 @@ class SqaReport(BaseModel):
 
     @field_validator("passed")
     @classmethod
-    def passed_implies_no_blockers(cls, passed: bool, info) -> bool:
+    def passed_implies_no_blockers(cls, passed: bool, info: ValidationInfo) -> bool:
         findings: list[SqaFinding] = info.data.get("findings", []) or []
         if passed and any(f.severity == "blocker" for f in findings):
             raise ValueError("Cannot mark passed=True while blocker findings exist.")
