@@ -184,3 +184,63 @@ def run_deterministic(
         passed=passed,
         findings=findings,
     )
+
+
+def run_full(
+    *,
+    rubric: dict[str, Any],
+    sow: SowDocument | None = None,
+    be: BudgetaryEstimate | None = None,
+    wbs: WbsDocument | None = None,
+    run_id: str,
+    opp_id: str,
+    corpus_snapshot_id: str,
+    llm: Any = None,
+    retriever: Any = None,
+    enable_judges: bool = True,
+    enable_analogy: bool = True,
+) -> SqaReport:
+    """Run all three layers and merge findings into a single SqaReport.
+
+    Layers (cheapest first):
+      1. Deterministic + regex (`run_deterministic`)
+      2. Inline LLM judges (`sqa.judges.run_llm_judges`)
+      3. Analogy critic with retrieval (`sqa.analogy.run_analogy_critic`)
+
+    LLM/retriever default to env-driven stubs so the function works even
+    without a model deployment configured.
+    """
+    from .analogy import retriever_from_env, run_analogy_critic
+    from .judges import run_llm_judges
+    from .llm import from_env as llm_from_env
+
+    base = run_deterministic(
+        rubric=rubric,
+        sow=sow,
+        be=be,
+        wbs=wbs,
+        run_id=run_id,
+        opp_id=opp_id,
+        corpus_snapshot_id=corpus_snapshot_id,
+    )
+
+    extra: list[SqaFinding] = []
+    client = llm if llm is not None else llm_from_env()
+
+    if enable_judges:
+        extra.extend(run_llm_judges(rubric=rubric, sow=sow, llm=client))
+
+    if enable_analogy:
+        ret = retriever if retriever is not None else retriever_from_env()
+        extra.extend(run_analogy_critic(rubric=rubric, sow=sow, llm=client, retriever=ret))
+
+    merged = list(base.findings) + extra
+    passed = not any(f.severity == "blocker" for f in merged)
+    return SqaReport(
+        oppId=opp_id,
+        runId=run_id,
+        rubricVersion=rubric["version"],
+        corpusSnapshotId=corpus_snapshot_id,
+        passed=passed,
+        findings=merged,
+    )

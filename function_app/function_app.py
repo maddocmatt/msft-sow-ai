@@ -16,7 +16,7 @@ import yaml
 from pydantic import ValidationError
 
 from shared.contracts import BudgetaryEstimate, SowDocument, WbsDocument
-from sqa.gatekeeper import RubricLoadError, run_deterministic
+from sqa.gatekeeper import RubricLoadError, run_full
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -74,7 +74,10 @@ def score(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         rubric = _get_rubric()
-        report = run_deterministic(
+        # Layer toggles via query string so callers can A/B between layers.
+        # Default: deterministic + judges. Analogy off (needs index).
+        layers = (req.params.get("layers") or "det,judges").lower()
+        report = run_full(
             rubric=rubric,
             sow=sow,
             be=be,
@@ -82,6 +85,8 @@ def score(req: func.HttpRequest) -> func.HttpResponse:
             run_id=str(body.get("runId", "")),
             opp_id=str(body.get("oppId", "")),
             corpus_snapshot_id=str(body.get("corpusSnapshotId", "")),
+            enable_judges="judges" in layers,
+            enable_analogy="analogy" in layers,
         )
     except RubricLoadError as exc:
         logging.exception("rubric load failed")
