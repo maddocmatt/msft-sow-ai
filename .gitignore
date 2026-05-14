@@ -80,3 +80,10 @@ function_app/sqa/
 function_app/rubrics/
 function_app/local.settings.json
 function_app/.python_packages/
+
+# Next.js / web
+web/node_modules/
+web/.next/
+web/out/
+web/.turbo/
+web/next-env.d.ts

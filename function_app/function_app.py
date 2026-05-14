@@ -18,7 +18,7 @@ from pydantic import ValidationError
 from shared.contracts import BudgetaryEstimate, SowDocument, WbsDocument
 from sqa.gatekeeper import RubricLoadError, run_deterministic
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 # Rubric is bundled with the deployment package.
 _RUBRIC_PATH = Path(__file__).parent / "rubrics" / "v1.yaml"
@@ -40,7 +40,7 @@ def health(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse('{"status":"ok"}', mimetype="application/json")
 
 
-@app.route(route="score", methods=[func.HttpMethod.POST])
+@app.route(route="score", methods=[func.HttpMethod.POST], auth_level=func.AuthLevel.ANONYMOUS)
 def score(req: func.HttpRequest) -> func.HttpResponse:
     """Run the deterministic SQA gatekeeper against an artifact bundle.
 
