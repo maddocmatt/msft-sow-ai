@@ -52,6 +52,11 @@ def main() -> int:
     registry_dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(registry_src, registry_dst)
     print(f"staged {registry_src} -> {registry_dst}")
+    language_src = templates_src / "_profiles" / "_language.json"
+    if language_src.exists():
+        language_dst = templates_dst / "_profiles" / "_language.json"
+        shutil.copy2(language_src, language_dst)
+        print(f"staged {language_src} -> {language_dst}")
     registry = yaml.safe_load(registry_src.read_text(encoding="utf-8"))
     for entry in registry.get("templates", []):
         tmpl_id = entry["id"]

@@ -59,6 +59,24 @@ type Report = {
   rubricVersion: string;
 };
 
+type LanguagePool = {
+  scope_verbs?: string[];
+  deliverable_phrases?: string[];
+  assumption_phrases?: string[];
+  responsibility_phrases?: string[];
+  section_openings?: Record<string, string[]>;
+};
+
+// Map canonical SOW sections to language-pool buckets to enrich sparse template sections
+const POOL_FOR_SECTION: Partial<Record<SectionName, (keyof LanguagePool)[]>> = {
+  background: ["section_openings"],
+  objectives: ["section_openings"],
+  scope: ["scope_verbs", "section_openings"],
+  deliverables: ["deliverable_phrases"],
+  assumptions: ["assumption_phrases"],
+  roles_and_responsibilities: ["responsibility_phrases"],
+};
+
 const ROLE_LABEL: Record<Role, string> = {
   instruction: "Instruction (delete)",
   optional_language: "Suggested language",
@@ -113,6 +131,7 @@ function ScoreInner() {
 
   const [template, setTemplate] = useState<TemplateDoc | null>(null);
   const [tplError, setTplError] = useState<string | null>(null);
+  const [pool, setPool] = useState<LanguagePool | null>(null);
   const [bodies, setBodies] = useState<Record<SectionName, string>>(
     () =>
       Object.fromEntries(SOW_SECTIONS.map((n) => [n, ""])) as Record<
@@ -142,6 +161,13 @@ function ScoreInner() {
       .then((j: TemplateDoc) => setTemplate(j))
       .catch((e) => setTplError(String(e)));
   }, [templateId]);
+
+  useEffect(() => {
+    fetch("/api/language")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setPool(j))
+      .catch(() => setPool(null));
+  }, []);
 
   const guidance = useMemo(
     () => pickGuidance(template, activeSection),
@@ -411,25 +437,89 @@ function ScoreInner() {
           )}
           {templateId && template && guidance.length === 0 && (
             <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-              No guidance for <strong>{CANONICAL_TITLES[activeSection]}</strong> in{" "}
-              <code>{template.id}</code>. The template may not have a matching
-              section, or the section had no color-coded content.
+              No template-specific guidance for{" "}
+              <strong>{CANONICAL_TITLES[activeSection]}</strong> in{" "}
+              <code>{template.id}</code>. Common phrases below may help.
             </p>
           )}
-          {filteredGuidance.map((g, i) => (
-            <div className={"guidance-card " + g.role} key={i}>
-              <div className="role-label">{ROLE_LABEL[g.role]}</div>
-              {g.subheading && <div className="subhead">{g.subheading}</div>}
-              <div className="text">{g.text}</div>
-              {g.role === "optional_language" && (
-                <div className="actions">
-                  <button onClick={() => insertGuidance(g.text)}>
-                    Insert into section
-                  </button>
+
+          {(() => {
+            // Group filtered template guidance by subheading
+            const groups = new Map<string, GuidanceItem[]>();
+            for (const g of filteredGuidance) {
+              const k = g.subheading || "(no subheading)";
+              if (!groups.has(k)) groups.set(k, []);
+              groups.get(k)!.push(g);
+            }
+            const elems: React.ReactNode[] = [];
+            let i = 0;
+            for (const [sub, items] of groups) {
+              elems.push(
+                <div className="guidance-group" key={`g-${i}`}>
+                  {sub}
+                  <span className="group-count">{items.length}</span>
+                </div>,
+              );
+              for (const g of items) {
+                elems.push(
+                  <div className={"guidance-card " + g.role} key={`c-${i++}`}>
+                    <div className="role-label">{ROLE_LABEL[g.role]}</div>
+                    <div className="text">{g.text}</div>
+                    {g.role === "optional_language" && (
+                      <div className="actions">
+                        <button onClick={() => insertGuidance(g.text)}>
+                          Insert into section
+                        </button>
+                      </div>
+                    )}
+                  </div>,
+                );
+              }
+            }
+            return elems;
+          })()}
+
+          {/* Cross-template phrase pool fallback when section is sparse */}
+          {pool && roleFilters.optional_language && (() => {
+            const buckets = POOL_FOR_SECTION[activeSection] || [];
+            const phrases: string[] = [];
+            for (const b of buckets) {
+              const v = pool[b];
+              if (Array.isArray(v)) phrases.push(...v);
+              else if (v && typeof v === "object") {
+                for (const arr of Object.values(v)) {
+                  if (Array.isArray(arr)) phrases.push(...arr);
+                }
+              }
+            }
+            // Filter: at least 25 chars, not header-like; cap at 12
+            const useful = phrases
+              .filter((p) => typeof p === "string" && p.length >= 25 && /[.!?]$/.test(p.trim()))
+              .slice(0, 12);
+            if (useful.length === 0) return null;
+            return (
+              <>
+                <div className="guidance-group">
+                  Common phrases (cross-template)
+                  <span className="group-count">{useful.length}</span>
                 </div>
-              )}
-            </div>
-          ))}
+                {useful.map((p, idx) => (
+                  <div
+                    className="guidance-card optional_language from-pool"
+                    key={`p-${idx}`}
+                  >
+                    <div className="role-label">{ROLE_LABEL.optional_language}</div>
+                    <div className="text">{p}</div>
+                    <div className="actions">
+                      <button onClick={() => insertGuidance(p)}>
+                        Insert into section
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            );
+          })()}
         </aside>
       </div>
     </>

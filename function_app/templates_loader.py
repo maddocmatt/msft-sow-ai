@@ -74,6 +74,16 @@ def load_guidance(template_id: str) -> dict[str, Any]:
     return data
 
 
+@lru_cache(maxsize=1)
+def load_language_pool() -> dict[str, Any]:
+    """Cross-template suggested-language pool (assumption/responsibility/deliverable phrases)."""
+    path = _ROOT / "_profiles" / "_language.json"
+    if not path.exists():
+        return {}
+    data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return data
+
+
 def guidance_for_section(template_id: str, section_match: str) -> list[dict[str, Any]]:
     """Return guidance items for a section whose title contains `section_match`.
 

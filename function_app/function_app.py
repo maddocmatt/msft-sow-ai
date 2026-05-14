@@ -71,6 +71,16 @@ def template_detail(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(json.dumps(tmpl), status_code=200, mimetype="application/json")
 
 
+@app.route(route="language", methods=[func.HttpMethod.GET], auth_level=func.AuthLevel.ANONYMOUS)
+def language_pool(req: func.HttpRequest) -> func.HttpResponse:
+    """Cross-template suggested-language pool used to enrich sparse template sections."""
+    return func.HttpResponse(
+        json.dumps(templates_loader.load_language_pool()),
+        status_code=200,
+        mimetype="application/json",
+    )
+
+
 @app.route(route="score", methods=[func.HttpMethod.POST], auth_level=func.AuthLevel.ANONYMOUS)
 def score(req: func.HttpRequest) -> func.HttpResponse:
     """Run the deterministic SQA gatekeeper against an artifact bundle.
