@@ -71,3 +71,5 @@ sqa/rejection_samples/**/*
 # Private/draft notes that shouldn't be committed
 *.private.md
 *.private.*
+
+infra/bicep/**/*.json
