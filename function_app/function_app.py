@@ -15,8 +15,8 @@ import azure.functions as func
 import yaml
 from pydantic import ValidationError
 
-from sqa.gatekeeper import RubricLoadError, run_deterministic
 from shared.contracts import BudgetaryEstimate, SowDocument, WbsDocument
+from sqa.gatekeeper import RubricLoadError, run_deterministic
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -57,7 +57,9 @@ def score(req: func.HttpRequest) -> func.HttpResponse:
     try:
         body = req.get_json()
     except ValueError:
-        return func.HttpResponse('{"error":"invalid JSON body"}', status_code=400, mimetype="application/json")
+        return func.HttpResponse(
+            '{"error":"invalid JSON body"}', status_code=400, mimetype="application/json"
+        )
 
     try:
         sow = SowDocument.model_validate(body["sow"])
