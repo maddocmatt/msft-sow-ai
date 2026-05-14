@@ -64,9 +64,10 @@ class AzureOpenAIChat:
             f"{self.endpoint}/openai/deployments/{self.deployment}"
             f"/chat/completions?api-version={self.api_version}"
         )
+        sys_msg = system + "\n\nRespond ONLY with valid JSON " + schema_hint
         body = {
             "messages": [
-                {"role": "system", "content": system + "\n\nRespond ONLY with valid JSON " + schema_hint},
+                {"role": "system", "content": sys_msg},
                 {"role": "user", "content": user},
             ],
             "response_format": {"type": "json_object"},
