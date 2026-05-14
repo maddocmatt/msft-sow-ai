@@ -81,6 +81,49 @@ def language_pool(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
+@app.route(route="polish", methods=[func.HttpMethod.POST], auth_level=func.AuthLevel.ANONYMOUS)
+def polish(req: func.HttpRequest) -> func.HttpResponse:
+    """Rewrite an architect's section draft to comply with SOW voice + template rules.
+
+    Body:
+      { "templateId": "msd-v13",
+        "sectionTitle": "Project objectives and scope",
+        "subheading": "Objectives" (optional),
+        "body": "<draft text>" }
+
+    Response:
+      { "rewritten": "...", "summary": "...", "changes": [...], "model": "..." }
+    """
+    import polish as polish_mod  # local import to keep cold-start cheap
+
+    try:
+        body = req.get_json()
+    except ValueError:
+        return func.HttpResponse(
+            '{"error":"invalid JSON body"}', status_code=400, mimetype="application/json"
+        )
+
+    template_id = (body.get("templateId") or "").strip() or None
+    section_title = (body.get("sectionTitle") or "").strip()
+    subheading = (body.get("subheading") or "").strip() or None
+    text = body.get("body") or ""
+
+    if not section_title:
+        return func.HttpResponse(
+            '{"error":"sectionTitle is required"}',
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    result = polish_mod.polish_section(
+        body=text,
+        template_id=template_id,
+        section_title=section_title,
+        subheading=subheading,
+    )
+    return func.HttpResponse(json.dumps(result), status_code=200, mimetype="application/json")
+
+
 @app.route(route="score", methods=[func.HttpMethod.POST], auth_level=func.AuthLevel.ANONYMOUS)
 def score(req: func.HttpRequest) -> func.HttpResponse:
     """Run the deterministic SQA gatekeeper against an artifact bundle.

@@ -3,22 +3,8 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { diffWords, type DiffSeg } from "../../lib/diff";
 
-const SOW_SECTIONS = [
-  "background",
-  "objectives",
-  "scope",
-  "out_of_scope",
-  "approach",
-  "deliverables",
-  "assumptions",
-  "roles_and_responsibilities",
-  "schedule",
-  "fees_and_payment",
-  "terms",
-] as const;
-
-type SectionName = (typeof SOW_SECTIONS)[number];
 type Role = "instruction" | "optional_language" | "placeholder";
 
 type GuidanceItem = {
@@ -44,37 +30,19 @@ type TemplateDoc = {
   sections: TemplateSection[];
 };
 
-type Finding = {
-  ruleId: string;
-  severity: "blocker" | "major" | "minor";
-  artifact: string;
-  locator: string;
-  description: string;
-  remediationHint?: string | null;
+type Change = {
+  before: string;
+  after: string;
+  rule: string;
+  why: string;
 };
 
-type Report = {
-  passed: boolean;
-  findings: Finding[];
-  rubricVersion: string;
-};
-
-type LanguagePool = {
-  scope_verbs?: string[];
-  deliverable_phrases?: string[];
-  assumption_phrases?: string[];
-  responsibility_phrases?: string[];
-  section_openings?: Record<string, string[]>;
-};
-
-// Map canonical SOW sections to language-pool buckets to enrich sparse template sections
-const POOL_FOR_SECTION: Partial<Record<SectionName, (keyof LanguagePool)[]>> = {
-  background: ["section_openings"],
-  objectives: ["section_openings"],
-  scope: ["scope_verbs", "section_openings"],
-  deliverables: ["deliverable_phrases"],
-  assumptions: ["assumption_phrases"],
-  roles_and_responsibilities: ["responsibility_phrases"],
+type PolishResult = {
+  rewritten: string;
+  summary: string;
+  changes: Change[];
+  model: string;
+  error?: string;
 };
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -83,46 +51,58 @@ const ROLE_LABEL: Record<Role, string> = {
   placeholder: "Placeholder (fill in)",
 };
 
-const CANONICAL_TITLES: Record<SectionName, string> = {
-  background: "Background",
-  objectives: "Objectives",
-  scope: "Scope",
-  out_of_scope: "Out of scope",
-  approach: "Approach",
-  deliverables: "Deliverables",
-  assumptions: "Assumptions",
-  roles_and_responsibilities: "Roles and responsibilities",
-  schedule: "Schedule",
-  fees_and_payment: "Fees and payment",
-  terms: "Terms",
+type EditableUnit = {
+  // Stable id used as the dictionary key for body/result state
+  id: string;
+  sectionTitle: string;
+  subheading: string | null;
+  guidance: GuidanceItem[];
 };
 
-const SECTION_NEEDLES: Record<SectionName, string[]> = {
-  background: ["background", "introduction", "overview"],
-  objectives: ["objective"],
-  scope: ["scope", "approach"],
-  out_of_scope: ["out of scope", "out-of-scope"],
-  approach: ["approach", "delivery"],
-  deliverables: ["deliverable"],
-  assumptions: ["assumption", "responsibilities"],
-  roles_and_responsibilities: ["role", "responsibilities", "organization"],
-  schedule: ["schedule", "timeline"],
-  fees_and_payment: ["fee", "payment", "compensation"],
-  terms: ["term", "compliance", "privacy", "security", "governance"],
-};
-
-function pickGuidance(template: TemplateDoc | null, name: SectionName): GuidanceItem[] {
+function buildUnits(template: TemplateDoc | null): EditableUnit[] {
   if (!template) return [];
-  const keys = SECTION_NEEDLES[name];
+  const units: EditableUnit[] = [];
   for (const sec of template.sections) {
-    const t = (sec.title || "").toLowerCase();
-    if (keys.some((k) => t.includes(k))) return sec.guidance;
+    if (sec.name === "_unclassified") continue;
+    // Group guidance items by subheading
+    const bySub = new Map<string | null, GuidanceItem[]>();
+    for (const g of sec.guidance) {
+      const k = g.subheading || null;
+      if (!bySub.has(k)) bySub.set(k, []);
+      bySub.get(k)!.push(g);
+    }
+    if (bySub.size === 0) {
+      units.push({
+        id: `${sec.name}::_root`,
+        sectionTitle: sec.title,
+        subheading: null,
+        guidance: [],
+      });
+      continue;
+    }
+    // Always include a section-level (no subheading) unit first if there are
+    // section-level items or if there's only one subheading group.
+    const subs = Array.from(bySub.keys());
+    const hasRoot = subs.includes(null);
+    if (hasRoot) {
+      units.push({
+        id: `${sec.name}::_root`,
+        sectionTitle: sec.title,
+        subheading: null,
+        guidance: bySub.get(null) || [],
+      });
+    }
+    for (const sub of subs) {
+      if (sub === null) continue;
+      units.push({
+        id: `${sec.name}::${sub}`,
+        sectionTitle: sec.title,
+        subheading: sub,
+        guidance: bySub.get(sub) || [],
+      });
+    }
   }
-  return [];
-}
-
-function wordCount(s: string): number {
-  return s.trim().split(/\s+/).filter(Boolean).length;
+  return units;
 }
 
 function ScoreInner() {
@@ -131,25 +111,11 @@ function ScoreInner() {
 
   const [template, setTemplate] = useState<TemplateDoc | null>(null);
   const [tplError, setTplError] = useState<string | null>(null);
-  const [pool, setPool] = useState<LanguagePool | null>(null);
-  const [bodies, setBodies] = useState<Record<SectionName, string>>(
-    () =>
-      Object.fromEntries(SOW_SECTIONS.map((n) => [n, ""])) as Record<
-        SectionName,
-        string
-      >,
-  );
-  const [activeSection, setActiveSection] = useState<SectionName>("background");
-  const [report, setReport] = useState<Report | null>(null);
-  const [rawError, setRawError] = useState<string | null>(null);
-  const [status, setStatus] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const [roleFilters, setRoleFilters] = useState<Record<Role, boolean>>({
-    instruction: true,
-    optional_language: true,
-    placeholder: true,
-  });
+  const [bodies, setBodies] = useState<Record<string, string>>({});
+  const [results, setResults] = useState<Record<string, PolishResult | null>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [hoverChange, setHoverChange] = useState<number | null>(null);
 
   useEffect(() => {
     if (!templateId) return;
@@ -162,82 +128,104 @@ function ScoreInner() {
       .catch((e) => setTplError(String(e)));
   }, [templateId]);
 
+  const units = useMemo(() => buildUnits(template), [template]);
+
   useEffect(() => {
-    fetch("/api/language")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => setPool(j))
-      .catch(() => setPool(null));
-  }, []);
+    if (units.length > 0 && activeId === null) {
+      setActiveId(units[0].id);
+    }
+  }, [units, activeId]);
 
-  const guidance = useMemo(
-    () => pickGuidance(template, activeSection),
-    [template, activeSection],
-  );
-  const filteredGuidance = useMemo(
-    () => guidance.filter((g) => roleFilters[g.role]),
-    [guidance, roleFilters],
+  const active = useMemo(
+    () => units.find((u) => u.id === activeId) || null,
+    [units, activeId],
   );
 
-  function buildBundle() {
-    return {
-      runId: "run-" + Math.random().toString(36).slice(2, 10),
-      oppId: "opp-demo-001",
-      corpusSnapshotId: "cs_4f53cda18c2baa0c0354bb5f",
-      templateId: templateId || undefined,
-      sow: {
-        oppId: "opp-demo-001",
-        templateProfile: templateId || "msd-v1",
-        sections: SOW_SECTIONS.map((name) => ({
-          name,
-          title: CANONICAL_TITLES[name],
-          body: bodies[name] || `(empty ${name})`,
-        })),
-      },
-      be: { oppId: "opp-demo-001", currency: "USD", lineItems: [] },
-      wbs: { oppId: "opp-demo-001", tasks: [] },
-    };
-  }
-
-  async function submit() {
-    setBusy(true);
-    setReport(null);
-    setRawError(null);
-    setStatus(null);
+  async function polish() {
+    if (!active) return;
+    setBusyId(active.id);
+    setHoverChange(null);
     try {
-      const res = await fetch("/api/score?layers=det,judges", {
+      const res = await fetch("/api/polish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildBundle()),
+        body: JSON.stringify({
+          templateId,
+          sectionTitle: active.sectionTitle,
+          subheading: active.subheading,
+          body: bodies[active.id] || "",
+        }),
       });
-      setStatus(res.status);
       const text = await res.text();
+      let parsed: PolishResult;
       try {
-        const parsed = JSON.parse(text);
-        if (typeof parsed?.passed === "boolean") {
-          setReport(parsed as Report);
-        } else {
-          setRawError(text);
-        }
+        parsed = JSON.parse(text);
       } catch {
-        setRawError(text);
+        parsed = {
+          rewritten: bodies[active.id] || "",
+          summary: "",
+          changes: [],
+          model: "?",
+          error: text,
+        };
       }
+      setResults((prev) => ({ ...prev, [active.id]: parsed }));
     } catch (e) {
-      setRawError(String(e));
+      setResults((prev) => ({
+        ...prev,
+        [active.id]: {
+          rewritten: bodies[active.id] || "",
+          summary: "",
+          changes: [],
+          model: "?",
+          error: String(e),
+        },
+      }));
     } finally {
-      setBusy(false);
+      setBusyId(null);
     }
   }
 
+  function acceptRewrite() {
+    if (!active) return;
+    const r = results[active.id];
+    if (!r) return;
+    setBodies((prev) => ({ ...prev, [active.id]: r.rewritten }));
+    setResults((prev) => ({ ...prev, [active.id]: null }));
+    setHoverChange(null);
+  }
+
+  function discardRewrite() {
+    if (!active) return;
+    setResults((prev) => ({ ...prev, [active.id]: null }));
+    setHoverChange(null);
+  }
+
   function insertGuidance(text: string) {
+    if (!active) return;
     setBodies((prev) => {
-      const cur = prev[activeSection];
+      const cur = prev[active.id] || "";
       const sep = cur && !cur.endsWith("\n") ? "\n" : "";
-      return { ...prev, [activeSection]: cur + sep + text + "\n" };
+      return { ...prev, [active.id]: cur + sep + text + "\n" };
     });
   }
 
-  const totalFindings = report?.findings.length ?? 0;
-  const blockers = report?.findings.filter((f) => f.severity === "blocker").length ?? 0;
+  const result = active ? results[active.id] : null;
+  const body = active ? bodies[active.id] || "" : "";
+  const diffSegs: DiffSeg[] = useMemo(
+    () => (result ? diffWords(body, result.rewritten) : []),
+    [result, body],
+  );
+
+  // Group units by section title for sidebar rendering
+  const sidebarGroups = useMemo(() => {
+    const map = new Map<string, EditableUnit[]>();
+    for (const u of units) {
+      if (!map.has(u.sectionTitle)) map.set(u.sectionTitle, []);
+      map.get(u.sectionTitle)!.push(u);
+    }
+    return Array.from(map.entries());
+  }, [units]);
 
   return (
     <>
@@ -267,259 +255,232 @@ function ScoreInner() {
         </Link>
         <button
           className="btn btn-primary"
-          onClick={submit}
-          disabled={busy || !templateId}
+          onClick={polish}
+          disabled={!active || busyId !== null || !body.trim()}
         >
-          {busy ? "Scoring…" : "Score bundle"}
+          {busyId ? "Polishing…" : "Polish this section"}
         </button>
       </header>
 
       {tplError && <div className="error-banner">{tplError}</div>}
 
       <div className="author-shell">
-        {/* Left: section nav */}
+        {/* Left: section nav driven by template */}
         <nav className="section-nav">
-          <h3>Sections</h3>
-          {SOW_SECTIONS.map((n) => {
-            const filled = bodies[n].trim().length > 0;
-            const count = pickGuidance(template, n).length;
-            return (
-              <button
-                key={n}
-                onClick={() => setActiveSection(n)}
-                className={
-                  (n === activeSection ? "active " : "") +
-                  (filled ? "has-content" : "")
-                }
-              >
-                <span>{CANONICAL_TITLES[n]}</span>
-                <span className={"pill" + (count === 0 ? " dot-empty" : "")}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+          <h3>{template ? `${template.display_name}` : "Sections"}</h3>
+          {sidebarGroups.map(([sectionTitle, sectionUnits]) => (
+            <div key={sectionTitle} className="nav-group">
+              <div className="nav-group-title">{sectionTitle}</div>
+              {sectionUnits.map((u) => {
+                const filled = (bodies[u.id] || "").trim().length > 0;
+                const polished = results[u.id] != null;
+                const label = u.subheading ?? "(section overview)";
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      setActiveId(u.id);
+                      setHoverChange(null);
+                    }}
+                    className={
+                      (u.id === activeId ? "active " : "") +
+                      (filled ? "has-content " : "") +
+                      (polished ? "has-polish" : "")
+                    }
+                  >
+                    <span>{label}</span>
+                    <span
+                      className={
+                        "pill" + (u.guidance.length === 0 ? " dot-empty" : "")
+                      }
+                    >
+                      {u.guidance.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* Center: editor + result */}
+        {/* Center: editor + diff */}
         <div className="editor-pane">
-          <div className="editor-header">
-            <div>
-              <h2>{CANONICAL_TITLES[activeSection]}</h2>
-              <div className="word-count">
-                {wordCount(bodies[activeSection])} words
-                {guidance.length > 0 && ` · ${guidance.length} guidance items available`}
-              </div>
+          {!active && (
+            <div className="empty" style={{ padding: 32 }}>
+              {templateId ? "Loading template…" : "Pick a template from the home page."}
             </div>
-            {status !== null && (
-              <span
-                className={
-                  "status-pill " +
-                  (status === 200
-                    ? report?.passed
-                      ? "pass"
-                      : "fail"
-                    : "fail")
-                }
-              >
-                HTTP {status}
-                {report &&
-                  ` · ${report.passed ? "Passed" : "Blocked"} · ${totalFindings} finding${
-                    totalFindings === 1 ? "" : "s"
-                  }`}
-              </span>
-            )}
-          </div>
+          )}
 
-          <div className="editor-body">
-            <textarea
-              value={bodies[activeSection]}
-              onChange={(e) =>
-                setBodies({ ...bodies, [activeSection]: e.target.value })
-              }
-              spellCheck
-              placeholder={`Author the ${CANONICAL_TITLES[activeSection].toLowerCase()} section here. Click "Insert" on a suggested language card on the right to drop it in.`}
-            />
-
-            {(report || rawError) && (
-              <div className="result-panel">
-                <div className="result-header">
-                  <h3>SQA result</h3>
-                  {report && (
-                    <span
-                      className={"status-pill " + (report.passed ? "pass" : "fail")}
-                    >
-                      {report.passed ? "Passed" : `Blocked (${blockers})`}
-                    </span>
-                  )}
-                  {report && (
-                    <span style={{ color: "var(--fg-subtle)", fontSize: 12 }}>
-                      rubric {report.rubricVersion}
-                    </span>
+          {active && (
+            <>
+              <div className="editor-header">
+                <div>
+                  <h2>{active.sectionTitle}</h2>
+                  {active.subheading && (
+                    <div style={{ color: "var(--fg-muted)", fontSize: 13 }}>
+                      {active.subheading}
+                    </div>
                   )}
                 </div>
+                {result && (
+                  <span
+                    className={
+                      "status-pill " +
+                      (result.error
+                        ? "fail"
+                        : result.changes.length === 0
+                          ? "pass"
+                          : "fail")
+                    }
+                  >
+                    {result.error
+                      ? "Polish error"
+                      : result.changes.length === 0
+                        ? "Already clean"
+                        : `${result.changes.length} edit${
+                            result.changes.length === 1 ? "" : "s"
+                          }`}
+                  </span>
+                )}
+              </div>
 
-                {rawError && (
-                  <pre style={{ padding: 16, overflow: "auto", fontSize: 12 }}>
-                    {rawError}
-                  </pre>
+              <div className="editor-body">
+                {!result && (
+                  <textarea
+                    value={body}
+                    onChange={(e) =>
+                      setBodies({ ...bodies, [active.id]: e.target.value })
+                    }
+                    spellCheck
+                    placeholder={`Draft the "${
+                      active.subheading ?? active.sectionTitle
+                    }" content. Use the template guidance on the right, then click "Polish this section" to apply Microsoft Federal SOW voice.`}
+                  />
                 )}
 
-                {report && report.findings.length === 0 && (
-                  <div className="empty">No findings — clean run.</div>
-                )}
+                {result && (
+                  <div className="diff-view">
+                    <div className="diff-summary">
+                      <strong>{result.summary || "Polish complete"}</strong>
+                      <span className="model-tag">model: {result.model}</span>
+                    </div>
 
-                {report && report.findings.length > 0 && (
-                  <div className="findings-list">
-                    {report.findings.map((f, i) => (
-                      <div className="finding" key={i}>
-                        <span className={"severity " + f.severity}>{f.severity}</span>
-                        <div className="body">
-                          <span className="rule-id">{f.ruleId}</span>
-                          <span className="desc">{f.description}</span>
-                          <span className="locator">
-                            {f.artifact}:{f.locator}
-                          </span>
-                          {f.remediationHint && (
-                            <span
-                              style={{
-                                fontSize: 12,
-                                color: "var(--fg-muted)",
-                                marginTop: 2,
-                              }}
-                            >
-                              💡 {f.remediationHint}
-                            </span>
+                    {result.error && (
+                      <pre className="diff-error">{result.error}</pre>
+                    )}
+
+                    <div className="diff-grid">
+                      <div className="diff-col">
+                        <div className="diff-col-title">Original</div>
+                        <div className="diff-text">
+                          {diffSegs.map((s, i) =>
+                            s.type === "ins" ? null : (
+                              <span
+                                key={i}
+                                className={s.type === "del" ? "del" : "eq"}
+                              >
+                                {s.text}
+                              </span>
+                            ),
                           )}
                         </div>
                       </div>
-                    ))}
+                      <div className="diff-col">
+                        <div className="diff-col-title">Polished</div>
+                        <div className="diff-text">
+                          {diffSegs.map((s, i) =>
+                            s.type === "del" ? null : (
+                              <span
+                                key={i}
+                                className={s.type === "ins" ? "ins" : "eq"}
+                              >
+                                {s.text}
+                              </span>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {result.changes.length > 0 && (
+                      <div className="changes-list">
+                        <h4>Why these edits</h4>
+                        {result.changes.map((c, i) => (
+                          <div
+                            key={i}
+                            className={
+                              "change-row " + (hoverChange === i ? "active" : "")
+                            }
+                            onMouseEnter={() => setHoverChange(i)}
+                            onMouseLeave={() => setHoverChange(null)}
+                          >
+                            <span className="change-rule">{c.rule}</span>
+                            <div className="change-pair">
+                              <div className="change-before">
+                                <span className="lbl">before</span> {c.before}
+                              </div>
+                              <div className="change-after">
+                                <span className="lbl">after</span> {c.after}
+                              </div>
+                            </div>
+                            <div className="change-why">{c.why}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="diff-actions">
+                      <button className="btn" onClick={discardRewrite}>
+                        Keep my draft
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={acceptRewrite}
+                        disabled={!!result.error}
+                      >
+                        Accept polished version
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Right: guidance rail */}
+        {/* Right: per-unit guidance rail */}
         <aside className="guidance-rail">
           <div className="rail-header">
             <h3>Template guidance</h3>
             <span className="count">
-              {filteredGuidance.length}/{guidance.length}
+              {active ? active.guidance.length : 0}
             </span>
           </div>
-
-          {guidance.length > 0 && (
-            <div className="role-filters">
-              {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
-                <button
-                  key={r}
-                  className={"role-filter " + r + (roleFilters[r] ? " active" : "")}
-                  onClick={() =>
-                    setRoleFilters({ ...roleFilters, [r]: !roleFilters[r] })
-                  }
-                >
-                  {r === "instruction"
-                    ? "Instr"
-                    : r === "optional_language"
-                      ? "Suggest"
-                      : "Slot"}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!templateId && (
+          {!active && (
             <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-              Choose a template from the home page to see authoring guidance.
+              Select a section to see its template-specific guidance.
             </p>
           )}
-          {templateId && template && guidance.length === 0 && (
+          {active && active.guidance.length === 0 && (
             <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-              No template-specific guidance for{" "}
-              <strong>{CANONICAL_TITLES[activeSection]}</strong> in{" "}
-              <code>{template.id}</code>. Common phrases below may help.
+              No color-coded guidance was extracted for this unit. Draft freely;
+              the polish pass still enforces SOW voice rules.
             </p>
           )}
-
-          {(() => {
-            // Group filtered template guidance by subheading
-            const groups = new Map<string, GuidanceItem[]>();
-            for (const g of filteredGuidance) {
-              const k = g.subheading || "(no subheading)";
-              if (!groups.has(k)) groups.set(k, []);
-              groups.get(k)!.push(g);
-            }
-            const elems: React.ReactNode[] = [];
-            let i = 0;
-            for (const [sub, items] of groups) {
-              elems.push(
-                <div className="guidance-group" key={`g-${i}`}>
-                  {sub}
-                  <span className="group-count">{items.length}</span>
-                </div>,
-              );
-              for (const g of items) {
-                elems.push(
-                  <div className={"guidance-card " + g.role} key={`c-${i++}`}>
-                    <div className="role-label">{ROLE_LABEL[g.role]}</div>
-                    <div className="text">{g.text}</div>
-                    {g.role === "optional_language" && (
-                      <div className="actions">
-                        <button onClick={() => insertGuidance(g.text)}>
-                          Insert into section
-                        </button>
-                      </div>
-                    )}
-                  </div>,
-                );
-              }
-            }
-            return elems;
-          })()}
-
-          {/* Cross-template phrase pool fallback when section is sparse */}
-          {pool && roleFilters.optional_language && (() => {
-            const buckets = POOL_FOR_SECTION[activeSection] || [];
-            const phrases: string[] = [];
-            for (const b of buckets) {
-              const v = pool[b];
-              if (Array.isArray(v)) phrases.push(...v);
-              else if (v && typeof v === "object") {
-                for (const arr of Object.values(v)) {
-                  if (Array.isArray(arr)) phrases.push(...arr);
-                }
-              }
-            }
-            // Filter: at least 25 chars, not header-like; cap at 12
-            const useful = phrases
-              .filter((p) => typeof p === "string" && p.length >= 25 && /[.!?]$/.test(p.trim()))
-              .slice(0, 12);
-            if (useful.length === 0) return null;
-            return (
-              <>
-                <div className="guidance-group">
-                  Common phrases (cross-template)
-                  <span className="group-count">{useful.length}</span>
-                </div>
-                {useful.map((p, idx) => (
-                  <div
-                    className="guidance-card optional_language from-pool"
-                    key={`p-${idx}`}
-                  >
-                    <div className="role-label">{ROLE_LABEL.optional_language}</div>
-                    <div className="text">{p}</div>
-                    <div className="actions">
-                      <button onClick={() => insertGuidance(p)}>
-                        Insert into section
-                      </button>
-                    </div>
+          {active &&
+            active.guidance.map((g, i) => (
+              <div className={"guidance-card " + g.role} key={i}>
+                <div className="role-label">{ROLE_LABEL[g.role]}</div>
+                <div className="text">{g.text}</div>
+                {g.role === "optional_language" && (
+                  <div className="actions">
+                    <button onClick={() => insertGuidance(g.text)}>
+                      Insert into draft
+                    </button>
                   </div>
-                ))}
-              </>
-            );
-          })()}
+                )}
+              </div>
+            ))}
         </aside>
       </div>
     </>
