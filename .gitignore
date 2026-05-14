@@ -62,6 +62,7 @@ templates/**/*.mpp
 
 # Extracted guidance contains template body text (may include MS-internal prose)
 templates/*/guidance.json
+templates/*/template.json
 
 corpus/**/*
 !corpus/**/README.md
@@ -81,6 +82,7 @@ infra/bicep/**/*.json
 function_app/shared/
 function_app/sqa/
 function_app/rubrics/
+function_app/templates/
 function_app/local.settings.json
 function_app/.python_packages/
 

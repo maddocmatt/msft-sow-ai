@@ -75,3 +75,53 @@ def test_run_full_with_stubs_matches_deterministic() -> None:
     )
     # Stubs add zero findings; deterministic layer alone determines pass/fail.
     assert isinstance(report.passed, bool)
+
+
+def test_voice_judge_includes_template_guidance_in_prompt() -> None:
+    """When template_doc is provided, the voice judge enriches its system
+    prompt with optional_language exemplars from the matching scope section."""
+    rubric = load_rubric(RUBRIC_PATH)
+    captured: dict[str, str] = {}
+
+    class _CaptureLlm:
+        def complete_json(self, *, system: str, user: str, schema_hint: str) -> dict[str, Any]:
+            captured["system"] = system
+            return {"items": []}
+
+    template_doc: dict[str, Any] = {
+        "id": "msd-v13",
+        "display_name": "MSD Template",
+        "sections": [
+            {
+                "name": "project-objectives-and-scope",
+                "title": "Project objectives and scope",
+                "guidance": [
+                    {
+                        "role": "optional_language",
+                        "text": "Microsoft will deliver a reference architecture.",
+                    },
+                    {"role": "instruction", "text": "[delete this note]"},
+                ],
+            }
+        ],
+    }
+    sow = _sow("- The system will provision tenants.")
+    run_llm_judges(rubric=rubric, sow=sow, llm=_CaptureLlm(), template_doc=template_doc)
+    assert "MSD Template" in captured["system"]
+    assert "Microsoft will deliver a reference architecture" in captured["system"]
+    # Instruction items must NOT leak into the judge prompt.
+    assert "[delete this note]" not in captured["system"]
+
+
+def test_voice_judge_no_guidance_falls_back_to_base_prompt() -> None:
+    """No template_doc -> system prompt is unchanged base prompt."""
+    rubric = load_rubric(RUBRIC_PATH)
+    captured: dict[str, str] = {}
+
+    class _CaptureLlm:
+        def complete_json(self, *, system: str, user: str, schema_hint: str) -> dict[str, Any]:
+            captured["system"] = system
+            return {"items": []}
+
+    run_llm_judges(rubric=rubric, sow=_sow("- foo"), llm=_CaptureLlm(), template_doc=None)
+    assert "exemplar scope-bullet" not in captured["system"]

@@ -39,18 +39,52 @@ def _scope_bullets(sow: SowDocument) -> list[str]:
     return []
 
 
+def _scope_guidance_snippet(template_doc: dict[str, Any] | None) -> str:
+    """Build an exemplar block from the template's scope section, if any."""
+    if not template_doc:
+        return ""
+    sections = template_doc.get("sections") or []
+    target = None
+    for s in sections:
+        if "scope" in (s.get("title") or "").lower():
+            target = s
+            break
+    if not target:
+        return ""
+    samples: list[str] = []
+    for g in target.get("guidance", []):
+        if g.get("role") != "optional_language":
+            continue
+        text = (g.get("text") or "").strip()
+        if text and len(text) <= 240:
+            samples.append(f"- {text}")
+        if len(samples) >= 8:
+            break
+    if not samples:
+        return ""
+    name = template_doc.get("display_name", "this template")
+    return (
+        "\n\nFor reference, here are exemplar scope-bullet phrasings drawn "
+        f"from {name}. Microsoft commits to providing capabilities; the system "
+        "is not the actor. Treat these as the canonical voice:\n"
+        + "\n".join(samples)
+    )
+
+
 def _run_voice_judge(
     *,
     rule: dict[str, Any],
     sow: SowDocument,
     llm: LlmClient,
+    template_doc: dict[str, Any] | None,
 ) -> list[SqaFinding]:
     bullets = _scope_bullets(sow)
     if not bullets:
         return []
 
+    system = _VOICE_SYSTEM + _scope_guidance_snippet(template_doc)
     user = "Bullets:\n" + "\n".join(f"{i}. {b}" for i, b in enumerate(bullets))
-    raw = llm.complete_json(system=_VOICE_SYSTEM, user=user, schema_hint=_VOICE_SCHEMA)
+    raw = llm.complete_json(system=system, user=user, schema_hint=_VOICE_SCHEMA)
     items = raw.get("items") or []
 
     findings: list[SqaFinding] = []
@@ -79,6 +113,7 @@ def run_llm_judges(
     rubric: dict[str, Any],
     sow: SowDocument | None,
     llm: LlmClient,
+    template_doc: dict[str, Any] | None = None,
 ) -> list[SqaFinding]:
     """Execute every rubric rule with `kind: llm_judge` that targets the bundle."""
     findings: list[SqaFinding] = []
@@ -94,5 +129,7 @@ def run_llm_judges(
         if "index" in spec:
             continue
         if spec.get("scope_section_only"):
-            findings.extend(_run_voice_judge(rule=rule, sow=sow, llm=llm))
+            findings.extend(
+                _run_voice_judge(rule=rule, sow=sow, llm=llm, template_doc=template_doc)
+            )
     return findings

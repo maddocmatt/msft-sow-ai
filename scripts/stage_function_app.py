@@ -38,6 +38,33 @@ def main() -> int:
     rubric_dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(rubric_src, rubric_dst)
     print(f"staged {rubric_src} -> {rubric_dst}")
+
+    # Stage template registry + per-template guidance/template JSON files
+    import yaml
+
+    templates_src = ROOT / "templates"
+    templates_dst = DST / "templates"
+    if templates_dst.exists():
+        shutil.rmtree(templates_dst)
+    templates_dst.mkdir(parents=True, exist_ok=True)
+    registry_src = templates_src / "_profiles" / "registry.yaml"
+    registry_dst = templates_dst / "_profiles" / "registry.yaml"
+    registry_dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(registry_src, registry_dst)
+    print(f"staged {registry_src} -> {registry_dst}")
+    registry = yaml.safe_load(registry_src.read_text(encoding="utf-8"))
+    for entry in registry.get("templates", []):
+        tmpl_id = entry["id"]
+        src_dir = templates_src / tmpl_id
+        if not src_dir.exists():
+            continue
+        tmpl_dst = templates_dst / tmpl_id
+        tmpl_dst.mkdir(parents=True, exist_ok=True)
+        for fname in ("template.json", "guidance.json"):
+            src = src_dir / fname
+            if src.exists():
+                shutil.copy2(src, tmpl_dst / fname)
+        print(f"staged {src_dir} -> {tmpl_dst}")
     return 0
 
 

@@ -6,12 +6,14 @@ via Azure Functions Core Tools (`func azure functionapp publish`).
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
 from typing import Any
 
 import azure.functions as func
+import templates_loader
 import yaml
 from pydantic import ValidationError
 
@@ -38,6 +40,35 @@ def _get_rubric() -> dict[str, Any]:
 @app.route(route="health", methods=[func.HttpMethod.GET], auth_level=func.AuthLevel.ANONYMOUS)
 def health(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse('{"status":"ok"}', mimetype="application/json")
+
+
+@app.route(route="templates", methods=[func.HttpMethod.GET], auth_level=func.AuthLevel.ANONYMOUS)
+def templates_list(req: func.HttpRequest) -> func.HttpResponse:
+    """List all available SOW templates (for the engagement-type picker)."""
+    return func.HttpResponse(
+        json.dumps({"templates": templates_loader.list_templates()}),
+        status_code=200,
+        mimetype="application/json",
+    )
+
+
+@app.route(
+    route="templates/{template_id}",
+    methods=[func.HttpMethod.GET],
+    auth_level=func.AuthLevel.ANONYMOUS,
+)
+def template_detail(req: func.HttpRequest) -> func.HttpResponse:
+    """Return the section tree + per-section guidance for one template."""
+    tid = req.route_params.get("template_id", "")
+    try:
+        tmpl = templates_loader.load_template(tid)
+    except templates_loader.TemplateNotFound:
+        return func.HttpResponse(
+            f'{{"error":"template not found","templateId":{tid!r}}}',
+            status_code=404,
+            mimetype="application/json",
+        )
+    return func.HttpResponse(json.dumps(tmpl), status_code=200, mimetype="application/json")
 
 
 @app.route(route="score", methods=[func.HttpMethod.POST], auth_level=func.AuthLevel.ANONYMOUS)
@@ -77,6 +108,13 @@ def score(req: func.HttpRequest) -> func.HttpResponse:
         # Layer toggles via query string so callers can A/B between layers.
         # Default: deterministic + judges. Analogy off (needs index).
         layers = (req.params.get("layers") or "det,judges").lower()
+        template_id = (body.get("templateId") or "").strip() or None
+        template_doc: dict[str, Any] | None = None
+        if template_id:
+            try:
+                template_doc = templates_loader.load_template(template_id)
+            except templates_loader.TemplateNotFound:
+                template_doc = None
         report = run_full(
             rubric=rubric,
             sow=sow,
@@ -87,6 +125,7 @@ def score(req: func.HttpRequest) -> func.HttpResponse:
             corpus_snapshot_id=str(body.get("corpusSnapshotId", "")),
             enable_judges="judges" in layers,
             enable_analogy="analogy" in layers,
+            template_doc=template_doc,
         )
     except RubricLoadError as exc:
         logging.exception("rubric load failed")

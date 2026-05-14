@@ -6,12 +6,13 @@ Template color convention (official):
   Red          -> placeholder       (must be filled in)
 
 Walks every paragraph in document order, tracks the current heading path
-(Heading 1 > Heading 2 > Heading 3 ...), and emits any paragraph whose runs
-include text in one of the configured colors. Output is structured JSON
-suitable for both the UI guidance pane and judge system prompts.
+(Heading 1 > Heading 2 > Heading 3 ...), and emits two artifacts per template:
 
-Reads the registry at templates/_profiles/registry.yaml and writes one
-templates/<template_id>/guidance.json per template.
+  templates/<id>/guidance.json  - raw flat list of color-coded guidance items
+  templates/<id>/template.json  - UI-friendly section tree with per-section
+                                  guidance grouped by sub-heading
+
+Reads the registry at templates/_profiles/registry.yaml.
 
 Usage:
   python scripts/extract_template_guidance.py
@@ -20,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -128,50 +130,139 @@ def _emit(
     return items
 
 
-def _walk(doc: Any, color_to_role: dict[str, str]) -> list[GuidanceItem]:
+def _walk(doc: Any, color_to_role: dict[str, str]) -> tuple[list[GuidanceItem], list[str]]:
+    """Walk body in document order so tables inherit the current heading.
+
+    Returns (guidance items, ordered list of unique level-1 headings).
+    """
+    from docx.oxml.ns import qn
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
     headings: list[str] = []
     items: list[GuidanceItem] = []
-    for idx, para in enumerate(doc.paragraphs):
-        style_name = para.style.name if para.style else ""
-        text = (para.text or "").strip()
-        level = _is_heading(style_name)
-        if level is not None and text:
-            while len(headings) >= level:
-                headings.pop()
-            while len(headings) < level - 1:
-                headings.append("")
-            headings.append(text)
-            continue
-        if not text:
-            continue
-        runs = _classify_runs(para, color_to_role)
-        items.extend(
-            _emit(
-                runs,
-                headings=headings,
-                paragraph_index=idx,
-                style=style_name,
-                enclosing=text,
-            )
-        )
-    return items
-
-
-def _walk_tables(doc: Any, color_to_role: dict[str, str], items: list[GuidanceItem]) -> None:
-    for tbl in doc.tables:
-        for row in tbl.rows:
-            for cell in row.cells:
-                for para in cell.paragraphs:
-                    runs = _classify_runs(para, color_to_role)
-                    items.extend(
-                        _emit(
-                            runs,
-                            headings=["__table__"],
-                            paragraph_index=-1,
-                            style="TableCell",
-                            enclosing=(para.text or "").strip(),
-                        )
+    top_level: list[str] = []
+    body = doc.element.body
+    para_idx = 0
+    for child in body.iterchildren():
+        if child.tag == qn("w:p"):
+            para = Paragraph(child, doc)
+            style_name = para.style.name if para.style else ""
+            text = (para.text or "").strip()
+            level = _is_heading(style_name)
+            if level is not None and text:
+                while len(headings) >= level:
+                    headings.pop()
+                while len(headings) < level - 1:
+                    headings.append("")
+                headings.append(text)
+                if level == 1 and text not in top_level:
+                    top_level.append(text)
+                para_idx += 1
+                continue
+            if text:
+                runs = _classify_runs(para, color_to_role)
+                items.extend(
+                    _emit(
+                        runs,
+                        headings=headings,
+                        paragraph_index=para_idx,
+                        style=style_name,
+                        enclosing=text,
                     )
+                )
+            para_idx += 1
+        elif child.tag == qn("w:tbl"):
+            tbl = Table(child, doc)
+            for row in tbl.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        runs = _classify_runs(para, color_to_role)
+                        items.extend(
+                            _emit(
+                                runs,
+                                headings=headings,
+                                paragraph_index=para_idx,
+                                style="TableCell",
+                                enclosing=(para.text or "").strip(),
+                            )
+                        )
+    return items, top_level
+
+
+_SLUG_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify(text: str) -> str:
+    return _SLUG_RE.sub("-", text.strip().lower()).strip("-")[:64] or "section"
+
+
+def _build_template_doc(
+    *,
+    entry: dict[str, Any],
+    items: list[GuidanceItem],
+    top_level: list[str],
+) -> dict[str, Any]:
+    """Group guidance by top-level heading into a section list for the UI."""
+    sections: list[dict[str, Any]] = []
+    seen_slugs: set[str] = set()
+    for title in top_level:
+        slug = _slugify(title)
+        # disambiguate if duplicate
+        base = slug
+        i = 2
+        while slug in seen_slugs:
+            slug = f"{base}-{i}"
+            i += 1
+        seen_slugs.add(slug)
+        section_items = [it for it in items if it.heading_path[:1] == [title]]
+        sections.append(
+            {
+                "name": slug,
+                "title": title,
+                "guidance_count": len(section_items),
+                "guidance": [
+                    {
+                        "role": it.role,
+                        "subheading": " > ".join(it.heading_path[1:])
+                        if len(it.heading_path) > 1
+                        else None,
+                        "text": it.text,
+                        "enclosing_text": it.enclosing_text,
+                    }
+                    for it in section_items
+                ],
+            }
+        )
+    # Also collect orphans (table cells, items with no top-level heading)
+    orphan_items = [
+        it for it in items if not it.heading_path or it.heading_path[0] not in top_level
+    ]
+    if orphan_items:
+        sections.append(
+            {
+                "name": "_unclassified",
+                "title": "Unclassified",
+                "guidance_count": len(orphan_items),
+                "guidance": [
+                    {
+                        "role": it.role,
+                        "subheading": " > ".join(it.heading_path) if it.heading_path else None,
+                        "text": it.text,
+                        "enclosing_text": it.enclosing_text,
+                    }
+                    for it in orphan_items
+                ],
+            }
+        )
+    return {
+        "id": entry["id"],
+        "engagement_type": entry["engagement_type"],
+        "display_name": entry["display_name"],
+        "source_file": entry["file"],
+        "section_count": len([s for s in sections if s["name"] != "_unclassified"]),
+        "sections": sections,
+    }
 
 
 def main() -> None:
@@ -188,14 +279,13 @@ def main() -> None:
             print(f"  ! missing: {path}")
             continue
         doc = docx.Document(str(path))
-        items = _walk(doc, color_to_role)
-        _walk_tables(doc, color_to_role, items)
+        items, top_level = _walk(doc, color_to_role)
         out_dir = TEMPLATES_DIR / tmpl_id
         out_dir.mkdir(parents=True, exist_ok=True)
         by_role: dict[str, int] = {}
         for it in items:
             by_role[it.role] = by_role.get(it.role, 0) + 1
-        out = {
+        guidance_doc = {
             "template_id": tmpl_id,
             "engagement_type": entry["engagement_type"],
             "display_name": entry["display_name"],
@@ -206,18 +296,31 @@ def main() -> None:
             "guidance": [asdict(i) for i in items],
         }
         (out_dir / "guidance.json").write_text(
-            json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+            json.dumps(guidance_doc, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        summary.append({"template": tmpl_id, "items": len(items), "roles": by_role})
+        template_doc = _build_template_doc(entry=entry, items=items, top_level=top_level)
+        (out_dir / "template.json").write_text(
+            json.dumps(template_doc, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        summary.append(
+            {
+                "template": tmpl_id,
+                "items": len(items),
+                "sections": template_doc["section_count"],
+                "roles": by_role,
+            }
+        )
         print(
-            f"  - {tmpl_id}: {len(items)} items "
+            f"  - {tmpl_id}: sections={template_doc['section_count']:2d}  items={len(items):3d}  "
             f"(instr={by_role.get('instruction', 0)}, "
             f"opt={by_role.get('optional_language', 0)}, "
             f"slot={by_role.get('placeholder', 0)})"
         )
     print("\nSummary:")
     for s in summary:
-        print(f"  {s['template']:24} {s['items']:4} items  {s['roles']}")
+        print(
+            f"  {s['template']:24} sections={s['sections']:2d}  items={s['items']:3d}  {s['roles']}"
+        )
 
 
 if __name__ == "__main__":

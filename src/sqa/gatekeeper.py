@@ -199,6 +199,7 @@ def run_full(
     retriever: Any = None,
     enable_judges: bool = True,
     enable_analogy: bool = True,
+    template_doc: dict[str, Any] | None = None,
 ) -> SqaReport:
     """Run all three layers and merge findings into a single SqaReport.
 
@@ -209,6 +210,9 @@ def run_full(
 
     LLM/retriever default to env-driven stubs so the function works even
     without a model deployment configured.
+
+    `template_doc`, if provided, is the loaded template.json — judges may
+    use it to ground their prompts in template-specific guidance.
     """
     from .analogy import retriever_from_env, run_analogy_critic
     from .judges import run_llm_judges
@@ -228,7 +232,9 @@ def run_full(
     client = llm if llm is not None else llm_from_env()
 
     if enable_judges:
-        extra.extend(run_llm_judges(rubric=rubric, sow=sow, llm=client))
+        extra.extend(
+            run_llm_judges(rubric=rubric, sow=sow, llm=client, template_doc=template_doc)
+        )
 
     if enable_analogy:
         ret = retriever if retriever is not None else retriever_from_env()
