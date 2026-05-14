@@ -1,0 +1,94 @@
+# SQA Rubric — v0 (placeholder)
+#
+# This file is the source of truth for what the SQA Gatekeeper enforces.
+# Each rule was either:
+#   (a) extracted from a real historical SQA rejection (see ../rejection_samples), or
+#   (b) a deterministic structural rule everyone agrees on.
+#
+# Schema:
+#   id:              stable identifier; never reuse
+#   severity:        info | minor | major | blocker
+#   artifact:        sow | be | wbs | collateral | plan
+#   description:     human-readable rule
+#   detector:
+#     kind:          structural | regex | llm_judge
+#     spec:          detector-specific config
+#   remediation_hint: short instruction the drafter agent will receive
+#
+# Severity policy: blocker ⇒ MUST fix before SQA pass. major ⇒ fix unless
+# explicitly waived by approver. minor/info ⇒ advisory.
+
+version: "0.1.0"
+rules:
+  - id: SOW-STRUCT-001
+    severity: blocker
+    artifact: sow
+    description: "All canonical SOW sections must be present and in order."
+    detector:
+      kind: structural
+      spec:
+        check: sow_section_order
+    remediation_hint: "Re-emit the SOW with sections in the order defined in src/shared/contracts.py SOW_SECTION_ORDER."
+
+  - id: SOW-PLACEHOLDER-001
+    severity: blocker
+    artifact: sow
+    description: "Draft contains placeholder tokens (TBD, TODO, [insert ...])."
+    detector:
+      kind: regex
+      spec:
+        pattern: "(?i)\\b(tbd|todo|\\[insert[^\\]]*\\]|xxx)\\b"
+    remediation_hint: "Replace every placeholder with a concrete value or a tracked assumption."
+
+  - id: SOW-ASSUMP-001
+    severity: major
+    artifact: sow
+    description: "Every assumption must declare an owner (customer | vendor | joint)."
+    detector:
+      kind: structural
+      spec:
+        check: assumption_owner_present
+    remediation_hint: "Tag each assumption with owner=customer|vendor|joint."
+
+  - id: BE-WBS-LINK-001
+    severity: blocker
+    artifact: be
+    description: "Every BE line item must reference a WBS task id."
+    detector:
+      kind: structural
+      spec:
+        check: be_lineitems_link_wbs
+    remediation_hint: "Set wbsTaskId on every BeLineItem so cost rolls up to the WBS."
+
+  - id: BE-RATE-CARD-001
+    severity: major
+    artifact: be
+    description: "All BE rates must match the current rate card corpus."
+    detector:
+      kind: structural
+      spec:
+        check: rates_match_corpus
+    remediation_hint: "Pull rates from corpus/rate_cards/ — do not invent."
+
+  - id: WBS-DEP-001
+    severity: major
+    artifact: wbs
+    description: "WBS task dependencies must reference existing task ids (no dangling)."
+    detector:
+      kind: structural
+      spec:
+        check: wbs_no_dangling_deps
+    remediation_hint: "Remove or fix dependency ids that don't exist in tasks[]."
+
+  - id: SQA-ANALOGY-001
+    severity: major
+    artifact: sow
+    description: "LLM analogy critic against ~5 nearest historical SQA rejections."
+    detector:
+      kind: llm_judge
+      spec:
+        index: idx-rejection-samples
+        topK: 5
+        model: gpt-4o-mini
+        prompt: "sqa_analogy_critic_v1"
+    remediation_hint: "Address the issues the critic raises before resubmitting."

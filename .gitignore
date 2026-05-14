@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+dist/
+build/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+local.settings.json
+*.pem
+*.pfx
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Azure / deploy
+.azure/
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Generated outputs (we keep source corpus + templates, not run output)
+runs/
+deliverables/
+output/
+*.docx~
+~$*
+
+# Logs
+*.log
