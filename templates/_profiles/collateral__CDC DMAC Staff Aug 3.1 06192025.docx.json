@@ -1,0 +1,111 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading1",
+      "text": "Engagement objectives and scope"
+    },
+    {
+      "style": "Heading2",
+      "text": "Objectives"
+    },
+    {
+      "style": "Heading2",
+      "text": "Areas in scope"
+    },
+    {
+      "style": "Heading3",
+      "text": "General scope"
+    },
+    {
+      "style": "Heading2",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1",
+      "text": "Engagement approach, timeline, and deliverable acceptance"
+    },
+    {
+      "style": "Heading2",
+      "text": "Approach"
+    },
+    {
+      "style": "Heading3",
+      "text": "Engagement Kick-Off"
+    },
+    {
+      "style": "Heading2",
+      "text": "Timeline"
+    },
+    {
+      "style": "Heading2",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading2",
+      "text": "Engagement governance"
+    },
+    {
+      "style": "Heading3",
+      "text": "Engagement communication"
+    },
+    {
+      "style": "Heading3",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading3",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading3",
+      "text": "Escalation path"
+    },
+    {
+      "style": "Heading2",
+      "text": "Engagement completion"
+    },
+    {
+      "style": "Heading1",
+      "text": "Engagement organization"
+    },
+    {
+      "style": "Heading2",
+      "text": "Engagement roles and responsibilities"
+    },
+    {
+      "style": "Heading4",
+      "text": "Microsoft"
+    },
+    {
+      "style": "Heading1",
+      "text": "Engagement assumptions"
+    },
+    {
+      "style": "Heading1",
+      "text": "Invoice and Payment"
+    },
+    {
+      "style": "Heading1",
+      "text": "Travel"
+    }
+  ],
+  "table_count": 7,
+  "section_break_count": 5,
+  "placeholders": [],
+  "styles_used": [
+    "BodyText",
+    "Heading1",
+    "Heading2",
+    "Heading3",
+    "Heading4",
+    "ListParagraph",
+    "TOC1",
+    "TOC2",
+    "TableParagraph"
+  ]
+}

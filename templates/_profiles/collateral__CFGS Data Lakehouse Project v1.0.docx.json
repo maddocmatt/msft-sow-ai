@@ -1,0 +1,186 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1nonumbers",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading1",
+      "text": "Project objectives and scope"
+    },
+    {
+      "style": "Heading2",
+      "text": "Objectives"
+    },
+    {
+      "style": "Heading2",
+      "text": "Areas in scope"
+    },
+    {
+      "style": "Heading3",
+      "text": "General project scope"
+    },
+    {
+      "style": "Heading3",
+      "text": "Software products and technologies"
+    },
+    {
+      "style": "Heading3",
+      "text": "Environments"
+    },
+    {
+      "style": "Heading3",
+      "text": "Testing and defect remediation"
+    },
+    {
+      "style": "Heading4",
+      "text": "Testing"
+    },
+    {
+      "style": "Heading4",
+      "text": "Defect remediation"
+    },
+    {
+      "style": "Heading2",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1",
+      "text": "Project approach, timeline, and deliverable acceptance"
+    },
+    {
+      "style": "Heading2",
+      "text": "Scrum approach"
+    },
+    {
+      "style": "Heading3",
+      "text": "Sprint process"
+    },
+    {
+      "style": "Heading3",
+      "text": "Project initiation"
+    },
+    {
+      "style": "Heading3",
+      "text": "Project Baseline Planning"
+    },
+    {
+      "style": "Heading3",
+      "text": "Delivery sprints"
+    },
+    {
+      "style": "Heading3",
+      "text": "Completion and Definition of Done"
+    },
+    {
+      "style": "Heading4",
+      "text": "Delivery sprint completion"
+    },
+    {
+      "style": "Heading4",
+      "text": "Backlog item completion"
+    },
+    {
+      "style": "Heading3",
+      "text": "Deployment"
+    },
+    {
+      "style": "Heading2",
+      "text": "Timeline"
+    },
+    {
+      "style": "Heading2",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading2",
+      "text": "Deliverable acceptance process"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project governance"
+    },
+    {
+      "style": "Heading3",
+      "text": "Project communication"
+    },
+    {
+      "style": "Heading3",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading3",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project completion"
+    },
+    {
+      "style": "Heading1",
+      "text": "Project organization"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project staffing"
+    },
+    {
+      "style": "Heading3",
+      "text": "Project roles and responsibilities"
+    },
+    {
+      "style": "Heading4",
+      "text": "Customer"
+    },
+    {
+      "style": "Heading4",
+      "text": "Microsoft"
+    },
+    {
+      "style": "Heading1",
+      "text": "Customer responsibilities and project assumptions"
+    },
+    {
+      "style": "Heading2",
+      "text": "Customer responsibilities"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project assumptions"
+    },
+    {
+      "style": "Heading2",
+      "text": "Backlog assumptions"
+    },
+    {
+      "style": "Heading1",
+      "text": "Definitions/Acronyms"
+    }
+  ],
+  "table_count": 13,
+  "section_break_count": 3,
+  "placeholders": [
+    "This Statement of Work (SOW) and any exhibits, appendices, schedules, and attachments to it are made pursuant to the Industry Solutions Delivery (ISD) Work Orde"
+  ],
+  "styles_used": [
+    "BodyMS",
+    "Bulletlist",
+    "CommentText",
+    "Heading1",
+    "Heading1nonumbers",
+    "Heading2",
+    "Heading3",
+    "Heading4",
+    "Instructional",
+    "ListParagraph",
+    "NormalWeb",
+    "Optional",
+    "TOC1",
+    "TOC2",
+    "TOCHeading",
+    "Table-Header",
+    "TableBullet1",
+    "TableText"
+  ]
+}

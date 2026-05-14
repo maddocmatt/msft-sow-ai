@@ -1,0 +1,228 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1NUM",
+      "text": "Project objectives and scope"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Objectives"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Areas in scope"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "General project scope"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Software products and technologies"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Data migration"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "System integration"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Environments"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Informal Knowledge Transfer / Training"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Delivery approach, timeline, and deliverable acceptance"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Delivery Approach"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Project Initiation"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Assess phase"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Remediate phase"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Enable phase"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Migrate phase"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Testing and defect remediation"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Deliverable acceptance process"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project organization"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project roles and responsibilities"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "<Customer Name>"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Microsoft"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project governance"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project communication"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Executive steering committee"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Escalation path"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Timeline"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project completion"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "<Customer Name> responsibilities and project assumptions"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "<Customer Name> responsibilities"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project assumptions"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Exhibits"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Delivery compliance, privacy and security"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "General DCPA scope"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Out of scope"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Approach"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "Delivery sprints"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "Project end"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "DCPA roles and responsibilities"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "<Microsoft OR Partner name> DCPA roles and responsibilities"
+    },
+    {
+      "style": "Heading4NUM",
+      "text": "<Customer Name> DCPA roles and responsibilities"
+    }
+  ],
+  "table_count": 32,
+  "section_break_count": 3,
+  "placeholders": [
+    "This Statement of Work (SOW) and any exhibits, appendices, schedules, and attachments to it are made pursuant to Industry Solutions Delivery (ISD) Work Order (W",
+    "[Insert an introduction describing the overall summary of this effort at an executive level.]. Insert an executive summary / Customer\u2019s WHY that reflects the Cu",
+    "The objectives of this project are to [insert a couple of sentences that frame the Microsoft (The Microsoft\u2019s WHY with a little of the high level WHAT) project ",
+    "Monthly Status Reports will be created and delivered on the [insert day] of each of the following month."
+  ],
+  "styles_used": [
+    "Bullet1",
+    "Bullet2",
+    "Bullet3",
+    "Bulletlist",
+    "Caption-Figure-Below",
+    "Caption-Table-Above",
+    "Heading1NUM",
+    "Heading2NUM",
+    "Heading3NUM",
+    "Heading4NUM",
+    "ListParagraph",
+    "TOC1",
+    "TOC2",
+    "TOCHeading",
+    "TableText",
+    "Tablebullet1",
+    "TableofFigures"
+  ]
+}

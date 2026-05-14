@@ -1,0 +1,127 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1NUM",
+      "text": "Project objectives and scope"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Areas in scope"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "General project scope"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Training"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Delivery approach, timeline, and deliverable acceptance"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Delivery Approach"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Project Initiation"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Deliverable acceptance process"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project organization"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project roles and responsibilities"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Sub-Contractor"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project governance"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project communication"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Escalation path"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Timeline"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project completion"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Microsoft responsibilities and project assumptions"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Microsoft responsibilities"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project assumptions"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Exhibits"
+    }
+  ],
+  "table_count": 8,
+  "section_break_count": 3,
+  "placeholders": [
+    "This Statement of Work (SOW) and any exhibits, appendices, schedules, and attachments to it are made pursuant to Industry Solutions Delivery (ISD) Work Order (W"
+  ],
+  "styles_used": [
+    "Bullet1",
+    "Bullet2",
+    "Bullet3",
+    "Caption-Figure-Below",
+    "Caption-Table-Above",
+    "Heading1NUM",
+    "Heading2NUM",
+    "Heading3NUM",
+    "ListParagraph",
+    "TOC1",
+    "TOC2",
+    "TOCHeading",
+    "TableText",
+    "Tablebullet1",
+    "TableofFigures"
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading1",
+      "text": "Project objectives and scope"
+    },
+    {
+      "style": "Heading2",
+      "text": "Objectives"
+    },
+    {
+      "style": "Heading2",
+      "text": "Areas in scope"
+    },
+    {
+      "style": "Heading3",
+      "text": "General project scope"
+    },
+    {
+      "style": "Heading2",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1",
+      "text": "Project approach, timeline, and deliverable acceptance"
+    },
+    {
+      "style": "Heading2",
+      "text": "Approach"
+    },
+    {
+      "style": "Heading3",
+      "text": "Time-boxed project"
+    },
+    {
+      "style": "Heading3",
+      "text": "Project initiation"
+    },
+    {
+      "style": "Heading3",
+      "text": "Sprint 0"
+    },
+    {
+      "style": "Heading2",
+      "text": "Timeline"
+    },
+    {
+      "style": "Heading2",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading2",
+      "text": "Deliverable acceptance process"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project governance"
+    },
+    {
+      "style": "Heading3",
+      "text": "Project communication"
+    },
+    {
+      "style": "Heading3",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading3",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading3",
+      "text": "Escalation path"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project completion"
+    },
+    {
+      "style": "Heading1",
+      "text": "Project organization"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project roles and responsibilities"
+    },
+    {
+      "style": "Heading4",
+      "text": "Customer"
+    },
+    {
+      "style": "Heading4",
+      "text": "Microsoft"
+    },
+    {
+      "style": "Heading1",
+      "text": "Customer responsibilities and project assumptions"
+    },
+    {
+      "style": "Heading2",
+      "text": "Customer responsibilities"
+    },
+    {
+      "style": "Heading2",
+      "text": "Project assumptions"
+    },
+    {
+      "style": "Heading1",
+      "text": "Exhibits"
+    }
+  ],
+  "table_count": 7,
+  "section_break_count": 3,
+  "placeholders": [
+    "Version: [Insert version]",
+    "This Statement of Work (\u201cSOW\u201d) and any exhibits, appendices, schedules, and attachments to it are made pursuant to Microsoft Consulting Services Work Order [ins",
+    "[Insert an executive summary / Customer\u2019s WHY that reflects the Customer (Customer context that has led to this project. For example, \u201cThis is the second phase,",
+    "The objectives of this project are to document and obtain agreement on the requirements, features, capabilities, flow, and major tasks needed to build the appli",
+    "This project will be time-boxed to [insert duration in weeks] weeks in duration. All dates and durations are relative to the project start date and are estimate",
+    "[Insert required Customer commitment information and add/remove additional roles as required. Check the Writing Guide for additional Microsoft Roles.]",
+    "[Insert additional items as required\u2014do not repeat assumptions listed elsewhere in the SOW. Consider the following: technical assumptions, infrastructure assump"
+  ],
+  "styles_used": [
+    "BlueText-BulletList",
+    "BlueText-BulletStyle2",
+    "Bulletlist",
+    "CommentText",
+    "Heading1",
+    "Heading2",
+    "Heading3",
+    "Heading4",
+    "Instructional",
+    "ListParagraph",
+    "Note",
+    "Optional",
+    "PinkText-Style2",
+    "TOC1",
+    "TOC2",
+    "TOC3",
+    "Table-Header",
+    "TableBullet1",
+    "TableText"
+  ]
+}

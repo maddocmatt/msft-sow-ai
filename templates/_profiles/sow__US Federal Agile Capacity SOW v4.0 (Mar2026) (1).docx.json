@@ -1,0 +1,171 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1NUM",
+      "text": "Project objectives and scope"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Customer desired business objectives"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Solution Vision"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Targeted scope (Epics)"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Delivery approach, completion and timeline"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Delivery overview"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Delivery approach"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Testing and defect remediation"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Sprint completion"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Deliverable acceptance process"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project completion"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Timeline"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project organization"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project capacity"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project staffing"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Executive steering committee"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Product council (Optional Section)"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Feature team"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project governance"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project communication"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Escalation path"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Exhibits"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Initial targeted product backlog"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "<Customer Name>-specific documentation"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Appendix"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Definitions and acronyms"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Technology requirements"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Environment requirements"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "<Customer Name> responsibilities"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project assumptions"
+    }
+  ],
+  "table_count": 19,
+  "section_break_count": 3,
+  "placeholders": [
+    "This Statement of Work (SOW) and any exhibits, appendices, schedules, and attachments to it are made pursuant to Industry Solutions Delivery (ISD) Work Order (W",
+    "This section cannot be left blank or have the customer business objectives indicated as to be determined (TBD). At a minimum, the overall business value project",
+    "The <Customer Name>\u2019s business objectives of this project are to [insert a couple of sentences that frame the Customer\u2019s project objectives. The objectives for ",
+    "Monthly Status Reports will be created and delivered on the [insert day] of each of the following month.",
+    "Team status meetings will be held [insert frequency] to review overall status, the project schedule and open issues noted in the status report."
+  ],
+  "styles_used": [
+    "Bullet1",
+    "Bullet2",
+    "Bullet3",
+    "Bulletlist",
+    "Caption-Figure-Below",
+    "Caption-Table-Above",
+    "Heading1NUM",
+    "Heading2NUM",
+    "ListParagraph",
+    "TOC1",
+    "TOC2",
+    "TOCHeading",
+    "TableText",
+    "Tablebullet1",
+    "TableofFigures"
+  ]
+}

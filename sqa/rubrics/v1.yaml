@@ -1,0 +1,272 @@
+# SQA Rubric — v1.0
+#
+# Grounded in actual MS US Federal SOW templates (Mar/Apr 2026 versions) via
+# scripts/mine_template_language.py. Every rule below cites the evidence that
+# justified it. When data conflicts with intuition, the data wins.
+#
+# Schema: see v0.yaml header.
+
+version: "1.0.0"
+derived_from:
+  templates_profiled: 9
+  language_mining_run: "scripts/mine_template_language.py"
+  notes: |
+    Evidence counts come from templates/_profiles/_language.json. We do NOT
+    ban hedges that appear frequently in approved templates; we DO require
+    the canonical phrasing patterns those templates establish.
+
+rules:
+  # ---------------------------------------------------------------------------
+  # PLACEHOLDERS — every approved template uses these markers; final drafts
+  # must have ZERO of them remaining. Total occurrences across templates = 624.
+  # ---------------------------------------------------------------------------
+  - id: PLACEHOLDER-CUSTOMER-001
+    severity: blocker
+    artifact: sow
+    description: "Unfilled <Customer Name> placeholder remains in draft."
+    detector:
+      kind: regex
+      spec:
+        pattern: "<Customer Name>"
+    remediation_hint: "Replace every <Customer Name> with the customer's legal name from the opportunity brief."
+
+  - id: PLACEHOLDER-MSPARTNER-001
+    severity: blocker
+    artifact: sow
+    description: "Unfilled <Microsoft OR Partner name> placeholder remains."
+    detector:
+      kind: regex
+      spec:
+        pattern: "<Microsoft OR Partner name>"
+    remediation_hint: "Replace with 'Microsoft' or the named partner."
+
+  - id: PLACEHOLDER-PROJECT-001
+    severity: blocker
+    artifact: sow
+    description: "Unfilled <Project Name> placeholder remains."
+    detector:
+      kind: regex
+      spec:
+        pattern: "<Project Name>"
+    remediation_hint: "Replace with the agreed project name."
+
+  - id: PLACEHOLDER-GENERIC-001
+    severity: blocker
+    artifact: sow
+    description: "Generic placeholder bracket/angle markers remain (e.g. [insert ...], <x>, [Epic 2])."
+    detector:
+      kind: regex
+      spec:
+        pattern: "(?i)\\[(insert|enter|add|delete|remove|template guidance|scope area|abstract|epic|customer)[^\\]]{0,80}\\]|<(x|y|n|date|insert[^>]{0,30})>"
+    remediation_hint: "Resolve all template-guidance brackets and angle placeholders."
+
+  # ---------------------------------------------------------------------------
+  # BANNED TOKENS — frequency in approved templates ~= 0, so any occurrence is suspect.
+  # ---------------------------------------------------------------------------
+  - id: BANNED-TBD-001
+    severity: blocker
+    artifact: sow
+    description: "TBD / 'to be determined' is essentially never used in approved templates."
+    detector:
+      kind: regex
+      spec:
+        pattern: "(?i)\\b(tbd|to be determined)\\b"
+    remediation_hint: "Replace with a concrete value or convert to a tracked open assumption with an owner."
+
+  - id: BANNED-WHISPER-001
+    severity: blocker
+    artifact: sow
+    description: "'Whisper number' has been retired from MS Federal pricing taxonomy."
+    detector:
+      kind: regex
+      spec:
+        pattern: "(?i)\\bwhisper\\s*(number|price|pricing)?\\b"
+    remediation_hint: "Use 'Budgetary Estimate (BE)' or 'Rough Order of Magnitude (ROM)' per the FedSQA Battle Card."
+
+  - id: BANNED-NMINUS-001
+    severity: major
+    artifact: sow
+    description: "Non-canonical approval taxonomy ('N-1', 'N-2', 'L0') confuses reviewers."
+    detector:
+      kind: regex
+      spec:
+        pattern: "(?i)\\bN[-\\s]?\\d\\b|\\bL0\\b"
+    remediation_hint: "Use the canonical approval levels L1 / L2 / L3 from the FedSQA Battle Card."
+
+  # ---------------------------------------------------------------------------
+  # SECTION OPENINGS — templates start sections with very specific framings.
+  # We don't require an exact match (too brittle), but we require the THEME.
+  # ---------------------------------------------------------------------------
+  - id: SCOPE-OPENING-001
+    severity: major
+    artifact: sow
+    description: "Scope section should open with engagement objective or 'Microsoft will' framing."
+    detector:
+      kind: structural
+      spec:
+        check: scope_opening_pattern
+        any_of:
+          - "(?i)the objective of this (engagement|project) is to"
+          - "(?i)the primary goal of this project is"
+          - "(?i)microsoft will (assist|provide|supplement)"
+          - "(?i)this section outlines the work and activities"
+    remediation_hint: "Open the scope section with one of the canonical patterns mined from the templates."
+
+  - id: OUT-OF-SCOPE-OPENING-001
+    severity: major
+    artifact: sow
+    description: "Out-of-scope section should explicitly disclaim everything not enumerated."
+    detector:
+      kind: structural
+      spec:
+        check: out_of_scope_opening_pattern
+        any_of:
+          - "(?i)any area not explicitly included in the areas in scope section is out of scope"
+    remediation_hint: "Use the canonical disclaimer: 'Any area not explicitly included in the Areas in scope section is out of scope for Microsoft during this engagement.'"
+
+  # ---------------------------------------------------------------------------
+  # VOICE — scope describes what MS DOES, not what the system WILL DO.
+  # This is the Ed-vs-PLURRI pattern: scope ≠ tool capability.
+  # ---------------------------------------------------------------------------
+  - id: VOICE-MS-ACTION-001
+    severity: major
+    artifact: sow
+    description: "Scope bullets must describe Microsoft activities, not finished system capabilities."
+    detector:
+      kind: llm_judge
+      spec:
+        scope_section_only: true
+        model: gpt-4o-mini
+        prompt: |
+          For each scope bullet, classify as:
+          (a) "MS_ACTION" — describes what Microsoft will do (verb subject = Microsoft)
+          (b) "SYSTEM_CAPABILITY" — describes what the delivered system will do
+          (c) "MIXED"
+          Flag any (b) or (c) as a finding.
+    remediation_hint: "Rewrite as 'Microsoft will [verb] [thing]' rather than 'The system will [verb] [thing]'."
+
+  - id: VOICE-CANONICAL-VERBS-001
+    severity: minor
+    artifact: sow
+    description: "Scope/approach should use the canonical verb set used in approved templates."
+    detector:
+      kind: structural
+      spec:
+        check: scope_verb_coverage
+        canonical_verbs:
+          - design   # 33 occurrences in templates
+          - review   # 26
+          - create   # 20
+          - perform  # 10
+          - deploy   # 8
+          - deliver  # 7
+          - document # 7
+          - assess   # 7
+          - build    # 5
+        min_distinct: 3
+    remediation_hint: "Use at least 3 of the canonical scope verbs: design, review, create, perform, deploy, deliver, document, assess, build."
+
+  # ---------------------------------------------------------------------------
+  # ASSUMPTIONS — must follow the bold-label + paragraph pattern, must have owner.
+  # ---------------------------------------------------------------------------
+  - id: ASSUMP-OWNER-001
+    severity: blocker
+    artifact: sow
+    description: "Every assumption must declare an owner (customer | vendor | joint)."
+    detector:
+      kind: structural
+      spec:
+        check: assumption_owner_present
+    remediation_hint: "Tag each assumption owner=customer|vendor|joint."
+
+  - id: ASSUMP-WORKDAY-001
+    severity: minor
+    artifact: sow
+    description: "Workday assumption boilerplate is missing or non-standard."
+    detector:
+      kind: structural
+      spec:
+        check: assumption_must_include
+        any_of:
+          - "(?i)standard work\\s?day for the microsoft (team|project team)"
+          - "(?i)8 ?am and 5 ?pm"
+    remediation_hint: "Include the canonical workday assumption: '8 AM and 5 PM, Monday through Friday'."
+
+  - id: ASSUMP-REMOTE-001
+    severity: minor
+    artifact: sow
+    description: "Remote-work assumption boilerplate is missing."
+    detector:
+      kind: structural
+      spec:
+        check: assumption_must_include
+        any_of:
+          - "(?i)microsoft (team|project team) (may|will) perform services remotely"
+    remediation_hint: "Include the canonical remote-work assumption."
+
+  - id: ASSUMP-FUNDING-001
+    severity: major
+    artifact: sow
+    description: "Funding-cap assumption boilerplate is missing."
+    detector:
+      kind: structural
+      spec:
+        check: assumption_must_include
+        any_of:
+          - "(?i)microsoft will not provide services beyond the currently funded amount"
+    remediation_hint: "Include: 'Microsoft will not provide services beyond the currently funded amount as set forth in the Work Order.'"
+
+  # ---------------------------------------------------------------------------
+  # RESPONSIBILITIES — Customer + Microsoft both must be present, each with verbs.
+  # ---------------------------------------------------------------------------
+  - id: RESP-CUSTOMER-PROVIDES-001
+    severity: major
+    artifact: sow
+    description: "Customer responsibilities must include 'Provide access to' clauses."
+    detector:
+      kind: structural
+      spec:
+        check: customer_resp_must_include
+        any_of:
+          - "(?i)provide access to (people|resources|systems)"
+          - "(?i)provide information"
+    remediation_hint: "Customer responsibilities must include explicit 'Provide access to people / resources / systems' bullets."
+
+  # ---------------------------------------------------------------------------
+  # PRICING / DOCUMENT TYPE — drives the Ed/Justino-style classification fights.
+  # ---------------------------------------------------------------------------
+  - id: DOCTYPE-DECLARATION-001
+    severity: blocker
+    artifact: sow
+    description: "Document type (SOW / BE / ROM) must be declared in the title and footer."
+    detector:
+      kind: structural
+      spec:
+        check: doctype_declared
+    remediation_hint: "Declare the document type explicitly. SOW != BE != ROM. Use the FedSQA Battle Card definition."
+
+  - id: PRICING-NONSTANDARD-EVIDENCE-001
+    severity: blocker
+    artifact: sow
+    description: "Non-standard pricing constructs (e.g. Non-Standard FFP) require a Compass artifact reference."
+    detector:
+      kind: structural
+      spec:
+        check: nonstandard_pricing_has_compass_ref
+    remediation_hint: "If pricing is non-standard, reference the Compass artifact ID and customer-approval email upload location."
+
+  # ---------------------------------------------------------------------------
+  # ANALOGY CRITIC — last line of defense; uses past redlines via AI Search.
+  # ---------------------------------------------------------------------------
+  - id: ANALOGY-CRITIC-001
+    severity: major
+    artifact: sow
+    description: "LLM analogy critic against k-NN historical SQA rejections."
+    detector:
+      kind: llm_judge
+      spec:
+        index: idx-rejection-samples
+        topK: 5
+        model: gpt-4o-mini
+        prompt: "sqa_analogy_critic_v1"
+    remediation_hint: "Address the issues the critic raises before resubmitting."

@@ -1,0 +1,57 @@
+[
+  {
+    "template": "budgetary_estimate/MS Federal Services BE Template -v3.pptx",
+    "profile": "templates/_profiles/budgetary_estimate__MS Federal Services BE Template -v3.pptx.json",
+    "kind": "pptx"
+  },
+  {
+    "template": "collateral/CDC DMAC Staff Aug 3.1 06192025.docx",
+    "profile": "templates/_profiles/collateral__CDC DMAC Staff Aug 3.1 06192025.docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "collateral/CFGS Data Lakehouse Project v1.0.docx",
+    "profile": "templates/_profiles/collateral__CFGS Data Lakehouse Project v1.0.docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "collateral/FY26 U.S. Federal Battle Card v4.0 - 06Mar2026.pdf",
+    "profile": "templates/_profiles/collateral__FY26 U.S. Federal Battle Card v4.0 - 06Mar2026.pdf.json",
+    "kind": "pdf"
+  },
+  {
+    "template": "sow/US Federal Agile Capacity SOW v4.0 (Mar2026) (1).docx",
+    "profile": "templates/_profiles/sow__US Federal Agile Capacity SOW v4.0 (Mar2026) (1).docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "sow/US Federal MSD SOW v13.0 (Mar2026).docx",
+    "profile": "templates/_profiles/sow__US Federal MSD SOW v13.0 (Mar2026).docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "sow/US Federal OSL SOW v13.0 (Mar2026).docx",
+    "profile": "templates/_profiles/sow__US Federal OSL SOW v13.0 (Mar2026).docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "sow/US Federal Staff Aug T&M SOW v12.0 (Mar2026).docx",
+    "profile": "templates/_profiles/sow__US Federal Staff Aug T&M SOW v12.0 (Mar2026).docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "sow/US Federal Sub-Contractor SOW Templated v1.0 (April2026).docx",
+    "profile": "templates/_profiles/sow__US Federal Sub-Contractor SOW Templated v1.0 (April2026).docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "sow/US Federal T&M Sprint Zero SOW v1.0 (Feb2026).docx",
+    "profile": "templates/_profiles/sow__US Federal T&M Sprint Zero SOW v1.0 (Feb2026).docx.json",
+    "kind": "docx"
+  },
+  {
+    "template": "wbs/Staffing Plan Template_8.0.xlsm",
+    "profile": "templates/_profiles/wbs__Staffing Plan Template_8.0.xlsm.json",
+    "kind": "xlsm"
+  }
+]

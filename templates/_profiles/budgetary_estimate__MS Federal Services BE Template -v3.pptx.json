@@ -1,0 +1,264 @@
+{
+  "kind": "pptx",
+  "slides": [
+    {
+      "index": 1,
+      "title": null,
+      "layout": null,
+      "placeholders": [
+        "1",
+        "REMEMBER! Delete slides 1 & 2 and any pink text before sending to the Customer! | Slide 2 provides the colors & the HEX ID to use for fonts, as well as the suggested fonts for title and content in each slide. | Keep the order of the content (ie. Current State/Biz Issues first, then Solution Overview, and so on). | If needed, split In Scope and Out of Scope into separate slides. | If you would like to tailor your photos to your Customer, more photos can be found here: Federal Photo Collections | This is a large file (due to the pictures) \u2013 you must pdf before sending to the Customer. | Finalize by: | Deleting any extra template and/or appendix slides | Update the Contents slide to align to the titles / content of the BE",
+        "Instructions",
+        "Delete this slide"
+      ]
+    },
+    {
+      "index": 2,
+      "title": "BUDGETARY ESTIMATE",
+      "layout": null,
+      "placeholders": [
+        "This Budgetary Estimate provides a high-level, non-binding cost estimate by major work segment for the delivery of the [Customer name] [Project initiative name], intended solely for budget planning purposes.  It does not represent a formal proposal or Statement of Work from Microsoft.  A more detailed discovery of requirements and technical environment will enable us to validate and refine these estimates. The price range that we are providing  is an estimate of the costs by major work segment and should be treated only as an estimate suitable for budgetary planning.  Additional discovery must be conducted in order to further refine our cost estimates.",
+        "10",
+        "COST & SCHEDULE ESTIMATE",
+        "This Budgetary Estimate will expire in 30 days unless formally extended in writing by Microsoft."
+      ]
+    },
+    {
+      "index": 3,
+      "title": "Questions?",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 4,
+      "title": null,
+      "layout": null,
+      "placeholders": [
+        "12",
+        "THANK YOU!",
+        "\u00a9 2015 Microsoft Corporation. All rights reserved. Microsoft, Windows, and other product names are or may be registered trademarks and/or trademarks in the U.S. and/or other countries. The information herein is for informational purposes only and represents the current view of Microsoft Corporation as of the date of this presentation. Because Microsoft must respond to changing market conditions, it should not be interpreted to be a commitment on the part of Microsoft, and Microsoft cannot guarantee the accuracy of any information provided after the date of this presentation.\u00a0MICROSOFT MAKES NO WARRANTIES, EXPRESS, IMPLIED OR STATUTORY, AS TO THE INFORMATION IN THIS PRESENTATION"
+      ]
+    },
+    {
+      "index": 5,
+      "title": "APPENDIX SLIDES",
+      "layout": null,
+      "placeholders": [
+        "13",
+        "Additional slide layouts to use to fit the need of your content | Icons (optional)"
+      ]
+    },
+    {
+      "index": 6,
+      "title": "SLIDE TITLE",
+      "layout": null,
+      "placeholders": [
+        "Subtitle if needed",
+        "14"
+      ]
+    },
+    {
+      "index": 7,
+      "title": "SLIDE TITLE",
+      "layout": null,
+      "placeholders": [
+        "Subtitle if needed",
+        "15"
+      ]
+    },
+    {
+      "index": 8,
+      "title": "TITLE",
+      "layout": null,
+      "placeholders": [
+        "Subtitle if needed",
+        "16",
+        "Topic 1",
+        "Topic 3",
+        "Topic 2",
+        "Topic 4"
+      ]
+    },
+    {
+      "index": 9,
+      "title": null,
+      "layout": null,
+      "placeholders": [
+        "2021",
+        "2021",
+        "Today",
+        "March",
+        "April",
+        "May"
+      ]
+    },
+    {
+      "index": 10,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 11,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 12,
+      "title": "FONTSEGOE UI UPPERCASE WITH LOOSE SPACING CAN BE USED FOR TITLES AND HEADERS.",
+      "layout": null,
+      "placeholders": [
+        "Segoe UI normal sentence case can be used for sub headers and text.",
+        "Dark Blue | HEX: #002060 | RGB: 0 32 96",
+        "2",
+        "Dark Gray | HEX: #1C1C1C | RGB: 28 28 28",
+        "Dark Red | HEX: #990000 | RGB: 153 0 0",
+        "Light Gray | HEX: #D9D9D9 | RGB: 217 217 217"
+      ]
+    },
+    {
+      "index": 13,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 14,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 15,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 16,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 17,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 18,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 19,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 20,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 21,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 22,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 23,
+      "title": null,
+      "layout": null,
+      "placeholders": [
+        "3",
+        "<Name of Solution> | Budgetary Estimate | Prepared for: | Customer Name",
+        "Prepared by: | Name, Title | Name, Title | Date"
+      ]
+    },
+    {
+      "index": 24,
+      "title": "MICROSOFT MONOLINE ICONS TO USE",
+      "layout": null,
+      "placeholders": []
+    },
+    {
+      "index": 25,
+      "title": "CONTENTS",
+      "layout": null,
+      "placeholders": [
+        "CURRENT STATE / BUSINESS ISSUE | SOLUTION OVERVIEW | SCOPE | ASSUMPTIONS | PROPOSED APPROACH | BUDGETARY ESTIMATE | QUESTIONS / NEXT STEPS",
+        "4"
+      ]
+    },
+    {
+      "index": 26,
+      "title": "BUSINESS ISSUE / CURRENT STATE",
+      "layout": null,
+      "placeholders": [
+        "Subtitle (if needed) | More photos can be found here: Photo Collections (sharepoint.us)",
+        "5",
+        "Key Point 1 | Key Point 2 | Key Point 3",
+        "Key Point 1 | Key Point 2 | Key Point 3",
+        "Key Point 1 | Key Point 2 | Key Point 3",
+        "<<Delete This Text and add the Project Specific Information>> | Demonstrate an understanding of the customer\u2019s key business needs or issues by re-stating them here. Examples include financial issues (such as maximizing ROI, reducing labor costs, reducing operating costs, eliminating production bottlenecks), productivity issues (increasing the productivity of a geographically, distributed work group, ensuring proper test or tool capabilities), or risk minimization issues (mitigating the risk of downtime, or end of life software). Please write 2-3 challenges or pains a customer could have when considering this solution. | Below is an example. | Eliminating manual authorization processes. Your current process for managing authorizations is almost 100% manual. As a result, it is costly, it does not scale, and it is frustrating for referral specialists to complete. | Simplifying claims administration. Today you handle approximately 40% of your claims volume via fax. This is simply too labor intensive. You need a streamlined, automated process linked to workflow. | Overcoming the lack of integration. Your current process does not effectively handle the volume of faxes and does not integrate them into an automated workflow. As a result, patients and providers often must wait for their answers."
+      ]
+    },
+    {
+      "index": 27,
+      "title": "SOLUTION OVERVIEW",
+      "layout": null,
+      "placeholders": [
+        "Objective / Goal Statement | The solution characteristics are: | Bullet 1 | Bullet 2",
+        "Microsoft Highly Confidential | For Discussion Purposes Only",
+        "6",
+        "<<Delete This Text and add the Project Specific Information>> | This should be the section detailing what the solution is\u2014Offering, accelerator, and end-to-end project lifecycle. If possible, add a graphic to this section so the customer knows what to expect. Below is an example of this section. | The primary goal of our proposed project is to provide a desktop deployment and management solution that enables Contoso to quickly and efficiently adopt a modern, optimized Windows 7 desktop. | We propose the following work streams to drive the successful deployment of a Windows 7 | Optimized Desktop | Image Engineering | Application Compatibility | Office 2010 Upgrade and Deployment | We will use our proprietary Windows 7 Desktop Accelerator program to deliver this solution in 6 weeks."
+      ]
+    },
+    {
+      "index": 28,
+      "title": "SCOPE",
+      "layout": null,
+      "placeholders": [
+        "In Scope",
+        "Activities that are out of scope for this budgetary estimate include, but are not limited to, the following: | ggg",
+        "7",
+        "Out of Scope",
+        "<<Delete This Text and add the Project Specific Information>> | The purpose of this Budgetary Estimate is to document our understanding of the work to be performed and to communicate it clearly to the customer. | Quantify, Quantify, Quantify! Whenever possible, use numbers to clarify a point. Examples: 4 software packages to review, 20 servers, 700 desktops, 5 half day workshops, 7 two-hour interviews, up to 2 interfaces, etc. Even if you are not sure of the precise answer, take a stab at what was used for estimating. These act as a form of assumption and are critical when negotiating with the customer about changes. | Avoid using technical or industry jargon, unexplained abbreviations, methodology buzzwords, or worse yet, legalese-sounding language. Use language that is commonly understood by the average individual. | Consider a phased approach when possible and try not to contract for the entire project. | When using recycled materials from Campus, check to ensure that all original customer specific references have been removed or updated and that the content matches the scope of your project.",
+        "Example \u2013 Delete once Scope is defined"
+      ]
+    },
+    {
+      "index": 29,
+      "title": "ASSUMPTIONS (Optional)",
+      "layout": null,
+      "placeholders": [
+        "8",
+        "For estimation purposes, we have assumed that the majority of design and implementation work will be performed by Microsoft Industry Solutions Delivery (ISD). We have, however, assumed some level of involvement from your personnel as detailed below under customer responsibilities.  We have not accounted for any internal costs of that involvement.",
+        "Project Assumptions / Customer Responsibilities: | Bullet 1 | Bullet 2\u2026"
+      ]
+    },
+    {
+      "index": 30,
+      "title": "PROPOSED APPROACH (optional)",
+      "layout": null,
+      "placeholders": [
+        "Subtitle if needed",
+        "Bullet 1 | Bullet 2\u2026",
+        "9",
+        "Example \u2013 Delete once Delivery Methodology is defined"
+      ]
+    }
+  ]
+}

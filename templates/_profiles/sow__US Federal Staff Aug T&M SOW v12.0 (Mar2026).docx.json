@@ -1,0 +1,105 @@
+{
+  "kind": "docx",
+  "headings": [
+    {
+      "style": "Heading1NUM",
+      "text": "Project objectives and scope"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Introduction"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "General scope"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Areas out of scope"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Delivery approach, completion and deliverables"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Delivery overview"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Project Kick-Off"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project completion"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Deliverables"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project organization"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project resourcing"
+    },
+    {
+      "style": "Heading3NUM",
+      "text": "Microsoft"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Project governance"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project communication"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Risk and issue management"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Change management process"
+    },
+    {
+      "style": "Heading1NUM",
+      "text": "Appendix"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Customer responsibilities"
+    },
+    {
+      "style": "Heading2NUM",
+      "text": "Project assumptions"
+    }
+  ],
+  "table_count": 5,
+  "section_break_count": 3,
+  "placeholders": [
+    "This Statement of Work (SOW) and any exhibits, appendices, schedules, and attachments to it are made pursuant to Industry Solutions Delivery (ISD) Work Order (W",
+    "Monthly Status Reports will be created and delivered on the [insert day] of each of the following month.",
+    "Team status meetings will be held [insert frequency] to review overall status, the project schedule and open issues noted in the status report."
+  ],
+  "styles_used": [
+    "Bullet1",
+    "Bullet2",
+    "Bullet3",
+    "Bulletlist",
+    "Caption-Table-Above",
+    "Heading1NUM",
+    "Heading2NUM",
+    "Heading3NUM",
+    "ListParagraph",
+    "TOC1",
+    "TOC2",
+    "TOCHeading",
+    "TableText",
+    "Tablebullet1",
+    "TableofFigures"
+  ]
+}
