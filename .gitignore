@@ -45,3 +45,29 @@ output/
 
 # Logs
 *.log
+
+# --- Sensitive content (LOCAL ONLY — never commit) ---
+# Templates and corpus may contain customer-identifying material or MS-internal
+# content not approved for redistribution. We keep them on disk for the agents
+# to use, but the only thing that is allowed in git are README.md files and
+# de-identified mined profiles (templates/_profiles/*.json — structural only).
+templates/**/*.docx
+templates/**/*.docm
+templates/**/*.xlsx
+templates/**/*.xlsm
+templates/**/*.pptx
+templates/**/*.pptm
+templates/**/*.pdf
+templates/**/*.mpp
+
+corpus/**/*
+!corpus/**/README.md
+!corpus/**/.gitkeep
+
+sqa/rejection_samples/**/*
+!sqa/rejection_samples/**/README.md
+!sqa/rejection_samples/**/.gitkeep
+
+# Private/draft notes that shouldn't be committed
+*.private.md
+*.private.*
