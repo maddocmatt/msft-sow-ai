@@ -1,0 +1,24 @@
+{
+  "runId": "r1",
+  "oppId": "o1",
+  "corpusSnapshotId": "cs_4f53cda18c2baa0c0354bb5f",
+  "sow": {
+    "oppId": "o1",
+    "templateProfile": "msd-v1",
+    "sections": [
+      {"name":"background","title":"Background","body":"finalized content."},
+      {"name":"objectives","title":"Objectives","body":"finalized content."},
+      {"name":"scope","title":"Scope","body":"- Microsoft will design the architecture.\n- The system will provision tenants automatically.\n- Microsoft will configure RBAC."},
+      {"name":"out_of_scope","title":"Out of Scope","body":"finalized content."},
+      {"name":"approach","title":"Approach","body":"finalized content."},
+      {"name":"deliverables","title":"Deliverables","body":"finalized content."},
+      {"name":"assumptions","title":"Assumptions","body":"finalized content."},
+      {"name":"roles_and_responsibilities","title":"Roles","body":"finalized content."},
+      {"name":"schedule","title":"Schedule","body":"finalized content."},
+      {"name":"fees_and_payment","title":"Fees","body":"finalized content."},
+      {"name":"terms","title":"Terms","body":"finalized content."}
+    ]
+  },
+  "be": {"oppId":"o1","currency":"USD","lineItems":[]},
+  "wbs": {"oppId":"o1","tasks":[]}
+}
