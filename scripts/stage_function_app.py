@@ -1,0 +1,45 @@
+"""Stage the function_app/ folder for deployment.
+
+Copies the vendored Python packages (shared, sqa) and the rubric file
+from the repo root into function_app/ so `func ... publish` ships a
+self-contained payload.
+
+Run before `func azure functionapp publish ...`.
+"""
+
+from __future__ import annotations
+
+import shutil
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "src"
+DST = ROOT / "function_app"
+
+PACKAGES = ["shared", "sqa"]
+
+
+def main() -> int:
+    if not DST.exists():
+        print(f"missing {DST}", file=sys.stderr)
+        return 1
+
+    for pkg in PACKAGES:
+        src_pkg = SRC / pkg
+        dst_pkg = DST / pkg
+        if dst_pkg.exists():
+            shutil.rmtree(dst_pkg)
+        shutil.copytree(src_pkg, dst_pkg, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        print(f"staged {src_pkg} -> {dst_pkg}")
+
+    rubric_src = ROOT / "sqa" / "rubrics" / "v1.yaml"
+    rubric_dst = DST / "rubrics" / "v1.yaml"
+    rubric_dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(rubric_src, rubric_dst)
+    print(f"staged {rubric_src} -> {rubric_dst}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

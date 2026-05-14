@@ -1,0 +1,7 @@
+# Excludes for `func azure functionapp publish`
+.git*
+.venv
+__pycache__
+local.settings.json
+.python_packages/
+tests/

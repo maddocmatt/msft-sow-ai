@@ -73,3 +73,10 @@ sqa/rejection_samples/**/*
 *.private.*
 
 infra/bicep/**/*.json
+
+# Function app vendored at deploy time
+function_app/shared/
+function_app/sqa/
+function_app/rubrics/
+function_app/local.settings.json
+function_app/.python_packages/
