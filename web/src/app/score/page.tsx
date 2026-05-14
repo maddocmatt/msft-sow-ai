@@ -19,9 +19,10 @@ const SOW_SECTIONS = [
 ] as const;
 
 type SectionName = (typeof SOW_SECTIONS)[number];
+type Role = "instruction" | "optional_language" | "placeholder";
 
 type GuidanceItem = {
-  role: "instruction" | "optional_language" | "placeholder";
+  role: Role;
   subheading: string | null;
   text: string;
   enclosing_text: string;
@@ -43,13 +44,22 @@ type TemplateDoc = {
   sections: TemplateSection[];
 };
 
-const ROLE_COLOR: Record<GuidanceItem["role"], string> = {
-  instruction: "#950095",
-  optional_language: "#00873d",
-  placeholder: "#d1242f",
+type Finding = {
+  ruleId: string;
+  severity: "blocker" | "major" | "minor";
+  artifact: string;
+  locator: string;
+  description: string;
+  remediationHint?: string | null;
 };
 
-const ROLE_LABEL: Record<GuidanceItem["role"], string> = {
+type Report = {
+  passed: boolean;
+  findings: Finding[];
+  rubricVersion: string;
+};
+
+const ROLE_LABEL: Record<Role, string> = {
   instruction: "Instruction (delete)",
   optional_language: "Suggested language",
   placeholder: "Placeholder (fill in)",
@@ -69,30 +79,32 @@ const CANONICAL_TITLES: Record<SectionName, string> = {
   terms: "Terms",
 };
 
-/** Fuzzy-pick guidance from the template doc for one canonical section. */
+const SECTION_NEEDLES: Record<SectionName, string[]> = {
+  background: ["background", "introduction", "overview"],
+  objectives: ["objective"],
+  scope: ["scope", "approach"],
+  out_of_scope: ["out of scope", "out-of-scope"],
+  approach: ["approach", "delivery"],
+  deliverables: ["deliverable"],
+  assumptions: ["assumption", "responsibilities"],
+  roles_and_responsibilities: ["role", "responsibilities", "organization"],
+  schedule: ["schedule", "timeline"],
+  fees_and_payment: ["fee", "payment", "compensation"],
+  terms: ["term", "compliance", "privacy", "security", "governance"],
+};
+
 function pickGuidance(template: TemplateDoc | null, name: SectionName): GuidanceItem[] {
   if (!template) return [];
-  const needles: Record<SectionName, string[]> = {
-    background: ["background", "introduction", "overview"],
-    objectives: ["objective"],
-    scope: ["scope", "approach"],
-    out_of_scope: ["out of scope", "out-of-scope"],
-    approach: ["approach", "delivery"],
-    deliverables: ["deliverable"],
-    assumptions: ["assumption", "responsibilities"],
-    roles_and_responsibilities: ["role", "responsibilities", "organization"],
-    schedule: ["schedule", "timeline"],
-    fees_and_payment: ["fee", "payment", "compensation"],
-    terms: ["term", "compliance", "privacy", "security", "governance"],
-  };
-  const keys = needles[name];
+  const keys = SECTION_NEEDLES[name];
   for (const sec of template.sections) {
     const t = (sec.title || "").toLowerCase();
-    if (keys.some((k) => t.includes(k))) {
-      return sec.guidance;
-    }
+    if (keys.some((k) => t.includes(k))) return sec.guidance;
   }
   return [];
+}
+
+function wordCount(s: string): number {
+  return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function ScoreInner() {
@@ -101,13 +113,24 @@ function ScoreInner() {
 
   const [template, setTemplate] = useState<TemplateDoc | null>(null);
   const [tplError, setTplError] = useState<string | null>(null);
-  const [bodies, setBodies] = useState<Record<SectionName, string>>(() =>
-    Object.fromEntries(SOW_SECTIONS.map((n) => [n, ""])) as Record<SectionName, string>,
+  const [bodies, setBodies] = useState<Record<SectionName, string>>(
+    () =>
+      Object.fromEntries(SOW_SECTIONS.map((n) => [n, ""])) as Record<
+        SectionName,
+        string
+      >,
   );
   const [activeSection, setActiveSection] = useState<SectionName>("background");
-  const [result, setResult] = useState<string>("");
+  const [report, setReport] = useState<Report | null>(null);
+  const [rawError, setRawError] = useState<string | null>(null);
   const [status, setStatus] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [roleFilters, setRoleFilters] = useState<Record<Role, boolean>>({
+    instruction: true,
+    optional_language: true,
+    placeholder: true,
+  });
 
   useEffect(() => {
     if (!templateId) return;
@@ -120,9 +143,13 @@ function ScoreInner() {
       .catch((e) => setTplError(String(e)));
   }, [templateId]);
 
-  const guidanceForActive = useMemo(
+  const guidance = useMemo(
     () => pickGuidance(template, activeSection),
     [template, activeSection],
+  );
+  const filteredGuidance = useMemo(
+    () => guidance.filter((g) => roleFilters[g.role]),
+    [guidance, roleFilters],
   );
 
   function buildBundle() {
@@ -147,7 +174,8 @@ function ScoreInner() {
 
   async function submit() {
     setBusy(true);
-    setResult("");
+    setReport(null);
+    setRawError(null);
     setStatus(null);
     try {
       const res = await fetch("/api/score?layers=det,judges", {
@@ -158,12 +186,17 @@ function ScoreInner() {
       setStatus(res.status);
       const text = await res.text();
       try {
-        setResult(JSON.stringify(JSON.parse(text), null, 2));
+        const parsed = JSON.parse(text);
+        if (typeof parsed?.passed === "boolean") {
+          setReport(parsed as Report);
+        } else {
+          setRawError(text);
+        }
       } catch {
-        setResult(text);
+        setRawError(text);
       }
     } catch (e) {
-      setResult(String(e));
+      setRawError(String(e));
     } finally {
       setBusy(false);
     }
@@ -177,207 +210,239 @@ function ScoreInner() {
     });
   }
 
-  return (
-    <main
-      style={{
-        padding: "1.5rem",
-        maxWidth: 1280,
-        margin: "0 auto",
-        fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
-        <h1 style={{ margin: 0 }}>Author SOW</h1>
-        <Link href="/" style={{ fontSize: 14 }}>← change template</Link>
-      </div>
-      {templateId ? (
-        <p style={{ marginTop: 4, color: "#57606a" }}>
-          Template:{" "}
-          <strong>
-            {template ? template.display_name : tplError ? "(failed to load)" : "loading…"}
-          </strong>
-          {tplError && (
-            <span style={{ color: "crimson", marginLeft: 8 }}>{tplError}</span>
-          )}
-        </p>
-      ) : (
-        <p style={{ color: "crimson" }}>
-          No template selected. <Link href="/">Pick one →</Link>
-        </p>
-      )}
+  const totalFindings = report?.findings.length ?? 0;
+  const blockers = report?.findings.filter((f) => f.severity === "blocker").length ?? 0;
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "200px 1fr 320px",
-          gap: 16,
-          marginTop: 16,
-          alignItems: "start",
-        }}
-      >
-        {/* Section list */}
-        <nav
-          style={{
-            border: "1px solid #d0d7de",
-            borderRadius: 8,
-            background: "#f6f8fa",
-            padding: 8,
-          }}
+  return (
+    <>
+      <header className="app-header">
+        <Link href="/" className="brand" style={{ color: "var(--fg)" }}>
+          msft-sow-ai
+        </Link>
+        <span className="crumb">
+          {templateId ? (
+            <>
+              Template:{" "}
+              <strong>
+                {template
+                  ? template.display_name
+                  : tplError
+                    ? "(failed to load)"
+                    : "loading…"}
+              </strong>
+            </>
+          ) : (
+            <span style={{ color: "var(--danger)" }}>No template selected</span>
+          )}
+        </span>
+        <span className="spacer" />
+        <Link className="btn" href="/">
+          ← Change template
+        </Link>
+        <button
+          className="btn btn-primary"
+          onClick={submit}
+          disabled={busy || !templateId}
         >
-          {SOW_SECTIONS.map((n) => (
-            <button
-              key={n}
-              onClick={() => setActiveSection(n)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "6px 8px",
-                margin: "2px 0",
-                border: "none",
-                borderRadius: 4,
-                background: n === activeSection ? "#0969da" : "transparent",
-                color: n === activeSection ? "#fff" : "#24292f",
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              {CANONICAL_TITLES[n]}
-            </button>
-          ))}
+          {busy ? "Scoring…" : "Score bundle"}
+        </button>
+      </header>
+
+      {tplError && <div className="error-banner">{tplError}</div>}
+
+      <div className="author-shell">
+        {/* Left: section nav */}
+        <nav className="section-nav">
+          <h3>Sections</h3>
+          {SOW_SECTIONS.map((n) => {
+            const filled = bodies[n].trim().length > 0;
+            const count = pickGuidance(template, n).length;
+            return (
+              <button
+                key={n}
+                onClick={() => setActiveSection(n)}
+                className={
+                  (n === activeSection ? "active " : "") +
+                  (filled ? "has-content" : "")
+                }
+              >
+                <span>{CANONICAL_TITLES[n]}</span>
+                <span className={"pill" + (count === 0 ? " dot-empty" : "")}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Editor */}
-        <section>
-          <h2 style={{ marginTop: 0 }}>{CANONICAL_TITLES[activeSection]}</h2>
-          <textarea
-            value={bodies[activeSection]}
-            onChange={(e) =>
-              setBodies({ ...bodies, [activeSection]: e.target.value })
-            }
-            spellCheck
-            placeholder={`Author ${CANONICAL_TITLES[activeSection]} content…`}
-            style={{
-              width: "100%",
-              minHeight: 360,
-              padding: 12,
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              fontSize: 13,
-              border: "1px solid #d0d7de",
-              borderRadius: 6,
-            }}
-          />
-          <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={submit} disabled={busy} style={{ padding: "8px 16px" }}>
-              {busy ? "Scoring…" : "Score bundle"}
-            </button>
+        {/* Center: editor + result */}
+        <div className="editor-pane">
+          <div className="editor-header">
+            <div>
+              <h2>{CANONICAL_TITLES[activeSection]}</h2>
+              <div className="word-count">
+                {wordCount(bodies[activeSection])} words
+                {guidance.length > 0 && ` · ${guidance.length} guidance items available`}
+              </div>
+            </div>
             {status !== null && (
-              <span style={{ color: status === 200 ? "green" : "crimson" }}>
+              <span
+                className={
+                  "status-pill " +
+                  (status === 200
+                    ? report?.passed
+                      ? "pass"
+                      : "fail"
+                    : "fail")
+                }
+              >
                 HTTP {status}
+                {report &&
+                  ` · ${report.passed ? "Passed" : "Blocked"} · ${totalFindings} finding${
+                    totalFindings === 1 ? "" : "s"
+                  }`}
               </span>
             )}
           </div>
-          <h3>Result</h3>
-          <pre
-            style={{
-              background: "#0b0f14",
-              color: "#d6deeb",
-              padding: 12,
-              minHeight: 120,
-              overflow: "auto",
-              fontSize: 12,
-              borderRadius: 6,
-            }}
-          >
-            {result || "(no response yet)"}
-          </pre>
-        </section>
 
-        {/* Guidance rail */}
-        <aside
-          style={{
-            border: "1px solid #d0d7de",
-            borderRadius: 8,
-            padding: 12,
-            background: "#fff",
-            maxHeight: "80vh",
-            overflowY: "auto",
-          }}
-        >
-          <h3 style={{ marginTop: 0, fontSize: 14 }}>Template guidance</h3>
-          {!templateId && (
-            <p style={{ fontSize: 13, color: "#57606a" }}>
-              Choose a template to see authoring guidance.
-            </p>
-          )}
-          {templateId && template && guidanceForActive.length === 0 && (
-            <p style={{ fontSize: 13, color: "#57606a" }}>
-              No guidance for this section in <code>{template.id}</code>.
-            </p>
-          )}
-          {guidanceForActive.map((g, i) => (
-            <div
-              key={i}
-              style={{
-                borderLeft: `3px solid ${ROLE_COLOR[g.role]}`,
-                padding: "6px 8px",
-                margin: "8px 0",
-                background: "#f6f8fa",
-                borderRadius: 4,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: ROLE_COLOR[g.role],
-                  textTransform: "uppercase",
-                }}
-              >
-                {ROLE_LABEL[g.role]}
-              </div>
-              {g.subheading && (
-                <div style={{ fontSize: 11, color: "#57606a", marginTop: 2 }}>
-                  {g.subheading}
+          <div className="editor-body">
+            <textarea
+              value={bodies[activeSection]}
+              onChange={(e) =>
+                setBodies({ ...bodies, [activeSection]: e.target.value })
+              }
+              spellCheck
+              placeholder={`Author the ${CANONICAL_TITLES[activeSection].toLowerCase()} section here. Click "Insert" on a suggested language card on the right to drop it in.`}
+            />
+
+            {(report || rawError) && (
+              <div className="result-panel">
+                <div className="result-header">
+                  <h3>SQA result</h3>
+                  {report && (
+                    <span
+                      className={"status-pill " + (report.passed ? "pass" : "fail")}
+                    >
+                      {report.passed ? "Passed" : `Blocked (${blockers})`}
+                    </span>
+                  )}
+                  {report && (
+                    <span style={{ color: "var(--fg-subtle)", fontSize: 12 }}>
+                      rubric {report.rubricVersion}
+                    </span>
+                  )}
                 </div>
-              )}
-              <div
-                style={{
-                  fontSize: 13,
-                  marginTop: 4,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {g.text}
+
+                {rawError && (
+                  <pre style={{ padding: 16, overflow: "auto", fontSize: 12 }}>
+                    {rawError}
+                  </pre>
+                )}
+
+                {report && report.findings.length === 0 && (
+                  <div className="empty">No findings — clean run.</div>
+                )}
+
+                {report && report.findings.length > 0 && (
+                  <div className="findings-list">
+                    {report.findings.map((f, i) => (
+                      <div className="finding" key={i}>
+                        <span className={"severity " + f.severity}>{f.severity}</span>
+                        <div className="body">
+                          <span className="rule-id">{f.ruleId}</span>
+                          <span className="desc">{f.description}</span>
+                          <span className="locator">
+                            {f.artifact}:{f.locator}
+                          </span>
+                          {f.remediationHint && (
+                            <span
+                              style={{
+                                fontSize: 12,
+                                color: "var(--fg-muted)",
+                                marginTop: 2,
+                              }}
+                            >
+                              💡 {f.remediationHint}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {g.role === "optional_language" && (
+            )}
+          </div>
+        </div>
+
+        {/* Right: guidance rail */}
+        <aside className="guidance-rail">
+          <div className="rail-header">
+            <h3>Template guidance</h3>
+            <span className="count">
+              {filteredGuidance.length}/{guidance.length}
+            </span>
+          </div>
+
+          {guidance.length > 0 && (
+            <div className="role-filters">
+              {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
                 <button
-                  onClick={() => insertGuidance(g.text)}
-                  style={{
-                    marginTop: 6,
-                    padding: "2px 8px",
-                    fontSize: 12,
-                    border: "1px solid #d0d7de",
-                    borderRadius: 4,
-                    background: "#fff",
-                    cursor: "pointer",
-                  }}
+                  key={r}
+                  className={"role-filter " + r + (roleFilters[r] ? " active" : "")}
+                  onClick={() =>
+                    setRoleFilters({ ...roleFilters, [r]: !roleFilters[r] })
+                  }
                 >
-                  Insert into section
+                  {r === "instruction"
+                    ? "Instr"
+                    : r === "optional_language"
+                      ? "Suggest"
+                      : "Slot"}
                 </button>
+              ))}
+            </div>
+          )}
+
+          {!templateId && (
+            <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
+              Choose a template from the home page to see authoring guidance.
+            </p>
+          )}
+          {templateId && template && guidance.length === 0 && (
+            <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
+              No guidance for <strong>{CANONICAL_TITLES[activeSection]}</strong> in{" "}
+              <code>{template.id}</code>. The template may not have a matching
+              section, or the section had no color-coded content.
+            </p>
+          )}
+          {filteredGuidance.map((g, i) => (
+            <div className={"guidance-card " + g.role} key={i}>
+              <div className="role-label">{ROLE_LABEL[g.role]}</div>
+              {g.subheading && <div className="subhead">{g.subheading}</div>}
+              <div className="text">{g.text}</div>
+              {g.role === "optional_language" && (
+                <div className="actions">
+                  <button onClick={() => insertGuidance(g.text)}>
+                    Insert into section
+                  </button>
+                </div>
               )}
             </div>
           ))}
         </aside>
       </div>
-    </main>
+    </>
   );
 }
 
 export default function ScorePage() {
   return (
-    <Suspense fallback={<main style={{ padding: "2rem" }}>Loading…</main>}>
+    <Suspense
+      fallback={
+        <main style={{ padding: "2rem", color: "var(--fg-muted)" }}>Loading…</main>
+      }
+    >
       <ScoreInner />
     </Suspense>
   );
