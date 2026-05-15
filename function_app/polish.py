@@ -11,9 +11,13 @@ strict-JSON response. Falls back to a structured no-op when no LLM is wired
 from __future__ import annotations
 
 import os
+import re
 import sys
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 # function_app/ ships sqa/ + shared/ as siblings; add self to path for direct import
 sys.path.insert(0, str(Path(__file__).parent))
@@ -21,16 +25,105 @@ sys.path.insert(0, str(Path(__file__).parent))
 import templates_loader  # noqa: E402
 from sqa.llm import LlmClient, from_env  # noqa: E402
 
-_RUBRIC_HINTS = """
-Banned hedges (rewrite to deterministic Microsoft-as-actor language):
-  may, might, should, could, possibly, potentially, generally, typically, where applicable
-Required voice in scope/deliverables:
-  "Microsoft will <verb> ..." — verbs: deliver, produce, provide, conduct, configure, develop, document, perform, design, implement
-Banned tokens:
-  TBD, [TBD], [insert ...], placeholders inherited from the template (red text)
-Out-of-scope sections must open with a definitive negation, not a hedge.
-Assumptions need an owner (customer / vendor / joint).
-"""
+_RUBRIC_PATH = Path(__file__).parent / "rubrics" / "v1.yaml"
+
+
+@lru_cache(maxsize=1)
+def _rubric_hints() -> str:
+    """Build a concise hint block from the live rubric YAML.
+
+    Pulls the actual banned-token regexes and canonical verb list so the polish
+    prompt stays in lockstep with the deterministic rubric — no hand-maintained
+    duplicate to drift out of sync.
+    """
+    try:
+        rubric = yaml.safe_load(_RUBRIC_PATH.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return _FALLBACK_HINTS
+
+    banned_terms: set[str] = set()
+    canonical_verbs: list[str] = []
+    out_of_scope_phrase: str | None = None
+    scope_openings: list[str] = []
+
+    for rule in rubric.get("rules", []):
+        rid = rule.get("id", "")
+        det = rule.get("detector", {}) or {}
+        spec = det.get("spec", {}) or {}
+        if rid.startswith("BANNED-") and det.get("kind") == "regex":
+            for term in _terms_from_regex(spec.get("pattern", "")):
+                banned_terms.add(term)
+        if rid == "VOICE-CANONICAL-VERBS-001":
+            canonical_verbs = list(spec.get("canonical_verbs", []))
+        if rid == "OUT-OF-SCOPE-OPENING-001":
+            for p in spec.get("any_of", []) or []:
+                # Strip flag markers and \b for human reading
+                cleaned = re.sub(r"\(\?i\)|\\b", "", p).strip()
+                out_of_scope_phrase = cleaned
+                break
+        if rid == "SCOPE-OPENING-001":
+            for p in spec.get("any_of", []) or []:
+                cleaned = re.sub(r"\(\?i\)|\\b|[\\\\()]", "", p).strip()
+                if cleaned and len(cleaned) < 120:
+                    scope_openings.append(cleaned)
+
+    parts: list[str] = []
+    if banned_terms:
+        parts.append(
+            "Banned tokens (rewrite or remove every occurrence):\n  "
+            + ", ".join(sorted(banned_terms))
+        )
+    parts.append(
+        "Banned hedges (rewrite to deterministic Microsoft-as-actor language):\n  "
+        "may, might, should, could, possibly, potentially, generally, typically, "
+        "where applicable, as appropriate, when feasible"
+    )
+    if canonical_verbs:
+        parts.append(
+            "Canonical verbs for scope/approach (prefer these):\n  "
+            + ", ".join(canonical_verbs)
+        )
+    parts.append(
+        "Voice rule: scope bullets describe what MICROSOFT does, not what the "
+        "delivered system does. Use 'Microsoft will <verb> ...' not 'The system "
+        "will <verb> ...'."
+    )
+    if out_of_scope_phrase:
+        parts.append(
+            "Out-of-scope sections must include the canonical disclaimer:\n  "
+            + out_of_scope_phrase
+        )
+    if scope_openings:
+        parts.append(
+            "Scope sections should open with one of these canonical framings:\n  - "
+            + "\n  - ".join(scope_openings[:3])
+        )
+    parts.append(
+        "Assumptions must each declare an owner (customer | vendor | joint)."
+    )
+    return "\n\n".join(parts)
+
+
+def _terms_from_regex(pattern: str) -> list[str]:
+    """Best-effort extraction of human-readable terms from a regex banned-token pattern."""
+    if not pattern:
+        return []
+    # Pull alternation groups like (tbd|to be determined) or (insert|enter|...)
+    terms: list[str] = []
+    for grp in re.findall(r"\(([^()|]+(?:\|[^()|]+)+)\)", pattern):
+        for t in grp.split("|"):
+            t = t.strip()
+            if 1 <= len(t) <= 40 and not any(ch in t for ch in "\\[]^$?+*{}"):
+                terms.append(t)
+    return terms
+
+
+_FALLBACK_HINTS = (
+    "Banned hedges: may, might, should, could, possibly, potentially, "
+    "generally, typically, where applicable.\n"
+    "Use 'Microsoft will <verb> ...' with verbs: design, review, create, "
+    "perform, deploy, deliver, document, assess, build."
+)
 
 
 def _build_prompt(
@@ -87,7 +180,7 @@ def _build_prompt(
         "You are an SOW (Statement of Work) Quality Assurance editor for Microsoft "
         "Federal Services. You rewrite architect prose to strictly comply with the "
         "Microsoft Federal SOW voice and template guidance.\n\n"
-        f"{_RUBRIC_HINTS}\n"
+        f"{_rubric_hints()}\n\n"
         "Rules for your output:\n"
         "1. Preserve the architect's intent. Do not add new commitments, deliverables, "
         "or numbers. Do not invent dates, prices, or roles.\n"

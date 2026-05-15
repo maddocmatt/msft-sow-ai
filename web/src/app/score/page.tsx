@@ -116,6 +116,35 @@ function ScoreInner() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoverChange, setHoverChange] = useState<number | null>(null);
+  const [showCompile, setShowCompile] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  const storageKey = templateId ? `sowai:draft:${templateId}` : null;
+
+  // Hydrate from localStorage once we know the templateId
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const j = JSON.parse(raw) as { bodies?: Record<string, string> };
+        if (j.bodies) setBodies(j.bodies);
+      }
+    } catch {
+      /* ignore */
+    }
+    setHydrated(true);
+  }, [storageKey]);
+
+  // Persist on every body change (after hydration)
+  useEffect(() => {
+    if (!storageKey || !hydrated) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ bodies }));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [bodies, storageKey, hydrated]);
 
   useEffect(() => {
     if (!templateId) return;
@@ -227,6 +256,70 @@ function ScoreInner() {
     return Array.from(map.entries());
   }, [units]);
 
+  // Build compiled markdown SOW from current bodies
+  const compiledMarkdown = useMemo(() => {
+    if (!template) return "";
+    const lines: string[] = [];
+    lines.push(`# ${template.display_name}`);
+    lines.push("");
+    lines.push(`*Template: \`${template.id}\` · Engagement: ${template.engagement_type}*`);
+    lines.push("");
+    for (const [sectionTitle, sectionUnits] of sidebarGroups) {
+      lines.push(`## ${sectionTitle}`);
+      lines.push("");
+      for (const u of sectionUnits) {
+        const text = (bodies[u.id] || "").trim();
+        if (u.subheading) {
+          lines.push(`### ${u.subheading}`);
+          lines.push("");
+        }
+        if (text) {
+          lines.push(text);
+        } else {
+          lines.push("_(empty)_");
+        }
+        lines.push("");
+      }
+    }
+    return lines.join("\n");
+  }, [template, sidebarGroups, bodies]);
+
+  function downloadMarkdown() {
+    if (!template) return;
+    const blob = new Blob([compiledMarkdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${template.id}-draft.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function copyMarkdown() {
+    try {
+      await navigator.clipboard.writeText(compiledMarkdown);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function clearAllDrafts() {
+    if (!storageKey) return;
+    if (!confirm("Discard all drafts for this template?")) return;
+    setBodies({});
+    setResults({});
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Counters for compile header
+  const filledUnitCount = units.filter((u) => (bodies[u.id] || "").trim().length > 0).length;
+
   return (
     <>
       <header className="app-header">
@@ -254,19 +347,55 @@ function ScoreInner() {
           ← Change template
         </Link>
         <button
-          className="btn btn-primary"
-          onClick={polish}
-          disabled={!active || busyId !== null || !body.trim()}
+          className="btn"
+          onClick={() => setShowCompile((v) => !v)}
+          disabled={!template}
         >
-          {busyId ? "Polishing…" : "Polish this section"}
+          {showCompile ? "Back to editor" : "Compile SOW"}
         </button>
+        {!showCompile && (
+          <button
+            className="btn btn-primary"
+            onClick={polish}
+            disabled={!active || busyId !== null || !body.trim()}
+          >
+            {busyId ? "Polishing…" : "Polish this section"}
+          </button>
+        )}
       </header>
 
       {tplError && <div className="error-banner">{tplError}</div>}
 
-      <div className="author-shell">
-        {/* Left: section nav driven by template */}
-        <nav className="section-nav">
+      {showCompile && template && (
+        <main className="compile-view">
+          <div className="compile-toolbar">
+            <div>
+              <h2>Compiled SOW preview</h2>
+              <div className="compile-meta">
+                {filledUnitCount}/{units.length} units drafted ·{" "}
+                {compiledMarkdown.length.toLocaleString()} chars · stored locally
+                in your browser
+              </div>
+            </div>
+            <span className="spacer" />
+            <button className="btn" onClick={clearAllDrafts}>
+              Clear drafts
+            </button>
+            <button className="btn" onClick={copyMarkdown}>
+              Copy markdown
+            </button>
+            <button className="btn btn-primary" onClick={downloadMarkdown}>
+              Download .md
+            </button>
+          </div>
+          <pre className="compile-md">{compiledMarkdown}</pre>
+        </main>
+      )}
+
+      {!showCompile && (
+        <div className="author-shell">
+          {/* Left: section nav driven by template */}
+          <nav className="section-nav">
           <h3>{template ? `${template.display_name}` : "Sections"}</h3>
           {sidebarGroups.map(([sectionTitle, sectionUnits]) => (
             <div key={sectionTitle} className="nav-group">
@@ -483,6 +612,7 @@ function ScoreInner() {
             ))}
         </aside>
       </div>
+      )}
     </>
   );
 }
