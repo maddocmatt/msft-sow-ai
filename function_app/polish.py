@@ -178,20 +178,53 @@ def _build_prompt(
 
     system = (
         "You are an SOW (Statement of Work) Quality Assurance editor for Microsoft "
-        "Federal Services. You rewrite architect prose to strictly comply with the "
-        "Microsoft Federal SOW voice and template guidance.\n\n"
+        "Federal Services. You aggressively rewrite architect prose to strictly "
+        "comply with the Microsoft Federal SOW voice and template guidance.\n\n"
         f"{_rubric_hints()}\n\n"
-        "Rules for your output:\n"
-        "1. Preserve the architect's intent. Do not add new commitments, deliverables, "
-        "or numbers. Do not invent dates, prices, or roles.\n"
-        "2. Tighten language. Convert passive/hedged language to active "
-        "Microsoft-as-actor sentences using canonical verbs.\n"
-        "3. Remove any leftover template instruction text or unfilled placeholders. "
-        "If a placeholder cannot be replaced from context, leave a clear marker like "
-        "[CUSTOMER NAME] for the architect to fill.\n"
-        "4. For each substantive edit, emit a change record with before/after spans "
-        "and a one-sentence WHY explaining which rule or guidance drove it.\n"
-        "5. If the input is already clean, return it unchanged with an empty changes list.\n"
+        "TRANSFORMATIONS YOU MUST APPLY (every occurrence):\n"
+        "A. Replace passive/abstract sentence subjects with 'Microsoft'.\n"
+        "   - 'This engagement focuses on X' -> 'Microsoft will <verb> X'.\n"
+        "   - 'The objective of this engagement is to support Y' -> "
+        "'Microsoft will <verb> Y' (use a canonical verb, e.g. assist, deliver, "
+        "design).\n"
+        "   - 'The system will X' -> 'Microsoft will X' (scope describes what "
+        "Microsoft does, not what the delivered system does).\n"
+        "B. Convert noun-phrase scope/deliverable bullets to active "
+        "'Microsoft will <verb> ...' sentences. Examples:\n"
+        "   - 'Decomposition and hardening of the pipeline ...' -> "
+        "'Microsoft will decompose and harden the pipeline ...'.\n"
+        "   - 'Systematic generation quality assurance through best-of-N ...' -> "
+        "'Microsoft will perform generation quality assurance through best-of-N "
+        "...'.\n"
+        "   - 'Infrastructure modernization including VNet integration ...' -> "
+        "'Microsoft will modernize infrastructure, including VNet integration "
+        "...'.\n"
+        "C. Remove banned hedges (may, might, should, could, possibly, "
+        "potentially, generally, typically, where applicable, as appropriate).\n"
+        "D. Replace banned tokens (TBD, whisper number, N-1, L0, [insert ...]) "
+        "with concrete commitments or clear bracketed placeholders.\n"
+        "E. Remove any leftover template instruction text or unfilled "
+        "placeholders. If a placeholder cannot be replaced from context, leave "
+        "a clear marker like [CUSTOMER NAME] for the architect to fill.\n\n"
+        "INTENT PRESERVATION:\n"
+        "- Do NOT add new commitments, deliverables, numbers, dates, prices, or "
+        "roles that are not present in the draft.\n"
+        "- Preserve all technical specifics (acronyms, metric thresholds like "
+        "'>=95%', technology names, agency names).\n"
+        "- Preserve bullet structure: bullets stay bullets, paragraphs stay "
+        "paragraphs.\n\n"
+        "CHANGE LOG REQUIREMENTS:\n"
+        "- For EVERY substantive edit, emit one change record with the EXACT "
+        "before substring (must appear verbatim in the draft) and the after "
+        "substring.\n"
+        "- The 'rule' field must be ONE of: VOICE-MS-ACTION, "
+        "VOICE-CANONICAL-VERB, BANNED-HEDGE, BANNED-TOKEN, PLACEHOLDER, "
+        "REMOVED-INSTRUCTION, BULLET-TO-SENTENCE, PASSIVE-TO-ACTIVE.\n"
+        "- The 'why' field is ONE sentence in plain English.\n"
+        "- If you genuinely cannot improve the draft, return it unchanged with "
+        "an empty changes list AND set summary to start with 'No edits: ' "
+        "followed by your reason. Be honest — most architect drafts have at "
+        "least one passive-subject or noun-phrase bullet to rewrite.\n"
     )
 
     user = (
@@ -267,6 +300,41 @@ def polish_section(
 
     rewritten = (result.get("rewritten") or body).strip()
     raw_changes = result.get("changes") or []
+
+    # Force-rewrite pass: model returned identical text but the input clearly has
+    # SOW-voice violations (passive subjects, noun-phrase bullets, hedges, banned
+    # tokens). Re-prompt with stronger instructions before accepting "no changes".
+    if (
+        _normalize(rewritten) == _normalize(body)
+        and not raw_changes
+        and _has_voice_violations(body)
+    ):
+        retry_system = system + (
+            "\n\nIMPORTANT — you returned an identical draft on the first pass. "
+            "The draft contains at least one of: passive sentence subject "
+            "('This engagement…', 'The objective is to support…'), noun-phrase "
+            "scope/deliverable bullet (starts with a gerund or abstract noun "
+            "instead of 'Microsoft will <verb>'), or a banned hedge. Apply the "
+            "transformations in section A and B above to EVERY occurrence. Return "
+            "the rewritten text plus one change record per substantive edit."
+        )
+        try:
+            result2 = client.complete_json(
+                system=retry_system, user=user, schema_hint=schema_hint
+            )
+            r2 = (result2.get("rewritten") or "").strip()
+            c2 = result2.get("changes") or []
+            if r2 and (_normalize(r2) != _normalize(body) or c2):
+                rewritten = r2
+                raw_changes = c2
+                # Annotate summary so the UI can surface the retry happened
+                summary_extra = " (retry)"
+                result["summary"] = (
+                    (result2.get("summary") or "").strip() + summary_extra
+                )
+        except Exception:  # noqa: BLE001 — keep first-pass result on retry failure
+            pass
+
     changes: list[dict[str, Any]] = []
     for c in raw_changes:
         if not isinstance(c, dict):
@@ -290,3 +358,61 @@ def polish_section(
         "changes": changes,
         "model": os.environ.get("SOWAI_LLM_DEPLOYMENT", "unknown"),
     }
+
+
+def _normalize(s: str) -> str:
+    """Whitespace-normalize for equality comparison."""
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+_PASSIVE_SUBJECTS = (
+    "this engagement",
+    "the objective of this engagement",
+    "the system will",
+    "the platform will",
+    "the project focuses",
+    "this project focuses",
+    "this section outlines",
+)
+_HEDGES = (
+    "may ",
+    "might ",
+    "should ",
+    "could ",
+    "possibly",
+    "potentially",
+    "generally",
+    "typically",
+    "where applicable",
+    "as appropriate",
+)
+
+
+def _has_voice_violations(text: str) -> bool:
+    """Heuristic: detect obvious SOW-voice issues that warrant a forced rewrite."""
+    low = text.lower()
+    if any(p in low for p in _PASSIVE_SUBJECTS):
+        return True
+    if any(h in low for h in _HEDGES):
+        return True
+    # Bullet lines that begin with a noun-phrase / gerund instead of "Microsoft will"
+    bullet_lines = [
+        ln.strip()
+        for ln in text.splitlines()
+        if ln.strip().startswith(("•", "-", "*", "·"))
+    ]
+    nounish = 0
+    for ln in bullet_lines:
+        # Strip the bullet glyph + whitespace
+        body_part = re.sub(r"^[•\-\*·]+\s*", "", ln).strip()
+        if not body_part:
+            continue
+        first = body_part.split()[0].lower().rstrip(",.;:")
+        if first.startswith("microsoft"):
+            continue
+        # Gerunds (-tion, -ing, -ment, -ness) or single noun starts
+        if first.endswith(("tion", "ing", "ment", "ness", "ity", "ization")):
+            nounish += 1
+    if nounish >= 2:
+        return True
+    return False
