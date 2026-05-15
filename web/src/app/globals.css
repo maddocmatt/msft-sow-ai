@@ -793,6 +793,90 @@ pre {
   font-size: 11px;
   color: var(--fg-subtle);
 }
+
+/* --- Polish status (during wait) --- */
+.polish-status {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  min-height: 200px;
+  justify-content: center;
+  animation: polish-pulse 2.4s ease-in-out infinite;
+}
+.polish-status-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.polish-status .spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+.polish-status .phase-timer {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.polish-status .phase-label {
+  font-size: 14px;
+  color: var(--fg);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.polish-status .phase-hint {
+  font-size: 12px;
+  color: var(--fg-subtle);
+  line-height: 1.5;
+  max-width: 60ch;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes polish-pulse {
+  0%, 100% { border-left-color: var(--accent); }
+  50% { border-left-color: var(--fg-subtle); }
+}
+
+/* --- Phase timeline (post-response) --- */
+.phase-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.phase-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.phase-chip-name {
+  color: var(--fg);
+}
+.phase-chip-ms {
+  color: var(--fg-subtle);
+  font-variant-numeric: tabular-nums;
+}
 .diff-error {
   background: var(--role-placeholder-bg);
   color: var(--role-placeholder);

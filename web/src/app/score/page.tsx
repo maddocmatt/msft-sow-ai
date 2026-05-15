@@ -37,12 +37,15 @@ type Change = {
   why: string;
 };
 
+type Phase = { name: string; ms: number };
+
 type PolishResult = {
   rewritten: string;
   summary: string;
   changes: Change[];
   model: string;
   error?: string;
+  phases?: Phase[];
 };
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -119,6 +122,11 @@ function ScoreInner() {
   const [showCompile, setShowCompile] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
+  // Live polish status
+  const [polishStartedAt, setPolishStartedAt] = useState<number | null>(null);
+  const [livePhase, setLivePhase] = useState<string>("");
+  const [elapsedMs, setElapsedMs] = useState(0);
+
   const storageKey = templateId ? `sowai:draft:${templateId}` : null;
 
   // Hydrate from localStorage once we know the templateId
@@ -174,6 +182,9 @@ function ScoreInner() {
     if (!active) return;
     setBusyId(active.id);
     setHoverChange(null);
+    setPolishStartedAt(Date.now());
+    setLivePhase("Loading rubric + template guidance…");
+    setElapsedMs(0);
     try {
       const res = await fetch("/api/polish", {
         method: "POST",
@@ -212,8 +223,35 @@ function ScoreInner() {
       }));
     } finally {
       setBusyId(null);
+      setPolishStartedAt(null);
+      setLivePhase("");
     }
   }
+
+  // Tick the elapsed counter + advance the simulated phase label while waiting.
+  // Server returns real phase timings on completion (rendered separately).
+  useEffect(() => {
+    if (!polishStartedAt) return;
+    const phaseScript: { atMs: number; label: string }[] = [
+      { atMs: 0, label: "Loading rubric + template guidance…" },
+      { atMs: 400, label: "Assembling prompt with section guidance…" },
+      { atMs: 900, label: "Calling gpt-4-1-mini for SOW voice rewrite…" },
+      { atMs: 6000, label: "Model is still drafting — large section…" },
+      { atMs: 12000, label: "Checking heuristics for missed violations…" },
+      { atMs: 14000, label: "Force-rewrite retry pass running…" },
+      { atMs: 22000, label: "Almost there — finalizing change records…" },
+    ];
+    const id = window.setInterval(() => {
+      const e = Date.now() - polishStartedAt;
+      setElapsedMs(e);
+      let lbl = phaseScript[0].label;
+      for (const p of phaseScript) {
+        if (e >= p.atMs) lbl = p.label;
+      }
+      setLivePhase(lbl);
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [polishStartedAt]);
 
   function acceptRewrite() {
     if (!active) return;
@@ -474,7 +512,21 @@ function ScoreInner() {
               </div>
 
               <div className="editor-body">
-                {!result && (
+                {busyId === active.id && (
+                  <div className="polish-status" role="status" aria-live="polite">
+                    <div className="polish-status-head">
+                      <div className="spinner" aria-hidden="true" />
+                      <div className="phase-timer">{(elapsedMs / 1000).toFixed(1)}s</div>
+                    </div>
+                    <div className="phase-label">{livePhase || "Working…"}</div>
+                    <div className="phase-hint">
+                      Polishing can take 10–25s for long sections — the model may also run a
+                      second force-rewrite pass if the first attempt missed violations.
+                    </div>
+                  </div>
+                )}
+
+                {busyId !== active.id && !result && (
                   <textarea
                     value={body}
                     onChange={(e) =>
@@ -487,12 +539,23 @@ function ScoreInner() {
                   />
                 )}
 
-                {result && (
+                {result && busyId !== active.id && (
                   <div className="diff-view">
                     <div className="diff-summary">
                       <strong>{result.summary || "Polish complete"}</strong>
                       <span className="model-tag">model: {result.model}</span>
                     </div>
+
+                    {result.phases && result.phases.length > 0 && (
+                      <div className="phase-timeline">
+                        {result.phases.map((p, i) => (
+                          <div key={i} className="phase-chip">
+                            <span className="phase-chip-name">{p.name}</span>
+                            <span className="phase-chip-ms">{p.ms} ms</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {result.error && (
                       <pre className="diff-error">{result.error}</pre>

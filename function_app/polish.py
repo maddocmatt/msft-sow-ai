@@ -259,15 +259,26 @@ def polish_section(
     llm: LlmClient | None = None,
 ) -> dict[str, Any]:
     """Run the polish pipeline. Returns a dict ready to JSON-serialize for the API."""
+    import time
+
+    t0 = time.perf_counter()
+    phases: list[dict[str, Any]] = []
+
+    def _mark(label: str) -> None:
+        phases.append({"name": label, "ms": int((time.perf_counter() - t0) * 1000)})
+
     body = body or ""
     if not body.strip():
+        _mark("empty input — skipped")
         return {
             "rewritten": "",
             "summary": "Empty input — nothing to polish.",
             "changes": [],
             "model": "noop",
+            "phases": phases,
         }
 
+    _mark("loading rubric + template guidance")
     client = llm or from_env()
     system, user = _build_prompt(
         body=body,
@@ -275,20 +286,26 @@ def polish_section(
         section_title=section_title,
         subheading=subheading,
     )
+    _mark("prompt assembled")
     schema_hint = (
         '{ "rewritten": string, "summary": string, '
         '"changes": [{"before": string, "after": string, "rule": string, "why": string}] }'
     )
+    deployment = os.environ.get("SOWAI_LLM_DEPLOYMENT", "unknown")
+    _mark(f"calling {deployment} (first pass)")
     try:
         result = client.complete_json(system=system, user=user, schema_hint=schema_hint)
     except Exception as exc:  # noqa: BLE001 — surface failure to caller
+        _mark(f"first-pass error: {type(exc).__name__}")
         return {
             "rewritten": body,
             "summary": f"Polish failed: {type(exc).__name__}: {exc}",
             "changes": [],
             "error": str(exc),
-            "model": os.environ.get("SOWAI_LLM_DEPLOYMENT", "unknown"),
+            "model": deployment,
+            "phases": phases,
         }
+    _mark("first pass complete")
 
     if result.get("_stub"):
         return {
@@ -296,6 +313,7 @@ def polish_section(
             "summary": "LLM stub — no real polish performed (set SOWAI_LLM_MODE=azure).",
             "changes": [],
             "model": "stub",
+            "phases": phases,
         }
 
     rewritten = (result.get("rewritten") or body).strip()
@@ -309,6 +327,7 @@ def polish_section(
         and not raw_changes
         and _has_voice_violations(body)
     ):
+        _mark("first pass returned no edits — heuristic detected violations, retrying")
         retry_system = system + (
             "\n\nIMPORTANT — you returned an identical draft on the first pass. "
             "The draft contains at least one of: passive sentence subject "
@@ -319,9 +338,11 @@ def polish_section(
             "the rewritten text plus one change record per substantive edit."
         )
         try:
+            _mark(f"calling {deployment} (retry pass)")
             result2 = client.complete_json(
                 system=retry_system, user=user, schema_hint=schema_hint
             )
+            _mark("retry pass complete")
             r2 = (result2.get("rewritten") or "").strip()
             c2 = result2.get("changes") or []
             if r2 and (_normalize(r2) != _normalize(body) or c2):
@@ -332,8 +353,10 @@ def polish_section(
                 result["summary"] = (
                     (result2.get("summary") or "").strip() + summary_extra
                 )
-        except Exception:  # noqa: BLE001 — keep first-pass result on retry failure
-            pass
+        except Exception as exc:  # noqa: BLE001 — keep first-pass result on retry failure
+            _mark(f"retry pass error: {type(exc).__name__}")
+    else:
+        _mark("normalizing changes")
 
     changes: list[dict[str, Any]] = []
     for c in raw_changes:
@@ -352,11 +375,13 @@ def polish_section(
             }
         )
 
+    _mark(f"done — {len(changes)} edit(s)")
     return {
         "rewritten": rewritten,
         "summary": (result.get("summary") or "").strip(),
         "changes": changes,
         "model": os.environ.get("SOWAI_LLM_DEPLOYMENT", "unknown"),
+        "phases": phases,
     }
 
 
